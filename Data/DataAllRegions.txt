@@ -1,0 +1,25 @@
+		Total	pgem
+1	Groningen 	30755	15
+2	Friesland 	29342	18
+3	Drenthe	25141	13
+4	IJsselland 	21779	12
+5	Twente 	24610	11
+6	Noordoost Gelderland 	32405	14
+7	Gelderland Midden 	25569	8
+8	Gelderland Zuid 	23151	10
+9	Utrecht 	52120	15
+10	Noord-Holland Noord 	29317	9
+11	Amsterdam/Waterland	71972	16
+12	Kennemerland 	27852	8
+14	Gooi- en Vechtstreek 	10184	4
+15	Haaglanden 	53745	12
+16	Hollands Midden 	34893	10
+17	Rotterdam-Rijnmond 	64175	12
+18	Zuid-Holland Zuid 	21005	8
+19	Zeeland 	18789	18
+20	Midden West Brabant 	48735	16
+21	Brabant Noord 	27507	9
+22	Zuidoost Brabant 	30195	9
+23	Limburg Noord 	24447	10
+24	Zuid Limburg 	28762	7
+25	Flevoland 	18077	8

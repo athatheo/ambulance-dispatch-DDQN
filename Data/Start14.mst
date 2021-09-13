@@ -1,0 +1,53 @@
+<?xml version = "1.0" encoding="UTF-8" standalone="yes"?>
+<CPLEXSolutions version="1.2">
+ <CPLEXSolution version="1.2">
+  <header
+    problemName="HypercubeILP.lp"
+    solutionName="m1"
+    solutionIndex="0"
+    MIPStartEffortLevel="0"
+    writeLevel="2"/>
+  <variables>
+<variable name="sv_0" index="10280" value="0.0"/>
+<variable name="sv_1" index="18244" value="0.0"/>
+<variable name="sv_2" index="19755" value="0.0"/>
+<variable name="sv_3" index="10281" value="0.0"/>
+<variable name="sv_4" index="12179" value="0.0"/>
+<variable name="sv_5" index="17628" value="0.0"/>
+<variable name="sv_6" index="17819" value="1.0"/>
+<variable name="sv_7" index="17950" value="0.0"/>
+<variable name="sv_8" index="18051" value="0.0"/>
+<variable name="sv_9" index="18182" value="0.0"/>
+<variable name="sv_10" index="18243" value="0.0"/>
+<variable name="sv_11" index="18345" value="0.0"/>
+<variable name="sv_12" index="18616" value="0.0"/>
+<variable name="sv_13" index="18767" value="0.0"/>
+<variable name="sv_14" index="18878" value="0.0"/>
+<variable name="sv_15" index="19009" value="0.0"/>
+<variable name="sv_16" index="19130" value="0.0"/>
+<variable name="sv_17" index="19261" value="0.0"/>
+<variable name="sv_18" index="19412" value="0.0"/>
+<variable name="sv_19" index="19593" value="0.0"/>
+<variable name="sv_20" index="19734" value="0.0"/>
+<variable name="sv_21" index="19956" value="0.0"/>
+<variable name="sv_22" index="20207" value="0.0"/>
+<variable name="sv_23" index="20378" value="0.0"/>
+<variable name="sv_24" index="20559" value="0.0"/>
+<variable name="sv_25" index="20820" value="0.0"/>
+<variable name="sv_26" index="21061" value="0.0"/>
+<variable name="sv_27" index="21352" value="0.0"/>
+<variable name="sv_28" index="21603" value="0.0"/>
+<variable name="sv_29" index="21804" value="0.0"/>
+<variable name="sv_30" index="22045" value="0.0"/>
+<variable name="sv_31" index="22236" value="1.0"/>
+<variable name="sv_32" index="22267" value="2.0"/>
+<variable name="sv_33" index="22288" value="0.0"/>
+<variable name="sv_34" index="22319" value="0.0"/>
+<variable name="sv_35" index="10292" value="0.0"/>
+<variable name="sv_36" index="10399" value="0.0"/>
+<variable name="sv_37" index="10670" value="0.0"/>
+<variable name="sv_38" index="11017" value="0.0"/>
+<variable name="sv_39" index="11358" value="0.0"/>
+  </variables>
+ </CPLEXSolution>
+</CPLEXSolutions>
