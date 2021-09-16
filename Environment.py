@@ -91,11 +91,41 @@ class environment:
         print(self.nr_ambulances)
         print(self.nr_postcodes)
 
-    def calculate_ttt(self):
+    def calculate_ttt(ambulance_loc, accident_loc, hospital_loc):
         """
         Caluclates the total travel time for an ambulance plus 15 min buffer
+        :param ambulance_loc: postal code of the ambulance location
+        :param accident_loc: postal code of the accident location
+        :param hospital_loc: postal code of the hospital location
         :return: total travel time in ms
         """
+        def distance_time(a, b):
+            """
+            Caluclates the travel time between two postal codes
+            :param a: starting point of the measured time
+            :param b: ending point of the measured time        
+            :return: travel time in ms
+            """
+            A = self.postcode_dic[region].index(a)
+            B = self.postcode_dic[region].index(b)
+
+            if region < 13:
+                i = region - 1
+            else:
+                i = region - 2
+            return self.coverage_lst[i][B][A]
+    
+        region = 0
+        for i in self.hospitals:
+            if (hospital_loc in self.hospitals[i]):
+                region = i
+                break
+            
+        initial_time = 1*60*1000
+        buffer_time = 15*60*1000
+        res = initial_time + distance_time(ambulance_loc, accident_loc) + buffer_time + distance_time(accident_loc, hospital_loc) + distance_time(hospital_loc, ambulance_loc)
+
+        return res
 
     def sample_accidents(self):
         """
