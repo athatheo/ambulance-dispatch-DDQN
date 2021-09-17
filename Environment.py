@@ -1,6 +1,7 @@
 import pandas as pd
 import openpyxl
 import re
+import numpy as np
 
 class environment:
 
@@ -130,23 +131,29 @@ class environment:
     def sample_accidents(self, region_nr):
         """
         sample accidents uniformly over time
-        :return:
+        :param: region number for region of interest
+        :return: list of booleans indicating if accident happened or not per zipcode
         """
-        accidentsYear = 10184  # read this value from DataAllRegions
+        accidentsYear = self.accidents[region_nr]
         totPop = sum(self.pop_dic[region_nr]) # get total number of people for region number
 
-        # Number of people per zipcode (people/total people)
+        # Percentage of people per zipcode (people/total people)
         per = []
         for i in self.pop_dic[region_nr]:
             a = float(i) / totPop
             # print(a)
             per.append(a)
-        # number of accidents per zipcode per day
+        # Number of accidents per zipcode per day
         accZip = []
         for i in per:
-            accidents = accidentsYear / 365
-            accZip.append(accidents * i)
+            accidents = accidentsYear / 365 # per day
+            accidents = accidents / 86400 # per seconds
+            accZip.append(accidents * i) # percentage
 
+        # sample boolean vector
+        return np.random.choice(1, size = len(self.pop_dic[region_nr]), p = accZip)
+
+        """
         accZip2 = ["%.2f" % e for e in accZip]
         # a= np.around(np.array(accZip),2)
         # print(accZip2)     #print number of accidents per day (2 decimals) of zipcode in a list
@@ -162,3 +169,4 @@ class environment:
         print(zipMin2)
 
         # accidents uniform over time ->
+        """
