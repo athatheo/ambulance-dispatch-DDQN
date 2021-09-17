@@ -136,22 +136,18 @@ class environment:
         """
         accidentsYear = self.accidents[region_nr]
         totPop = sum(self.pop_dic[region_nr]) # get total number of people for region number
+        accidents = accidentsYear / 365  # per day
+        accidents = accidents / 86400  # per seconds
 
-        # Percentage of people per zipcode (people/total people)
         per = []
+        accZip = []
         for i in self.pop_dic[region_nr]:
             a = float(i) / totPop
-            # print(a)
-            per.append(a)
-        # Number of accidents per zipcode per day
-        accZip = []
-        for i in per:
-            accidents = accidentsYear / 365 # per day
-            accidents = accidents / 86400 # per seconds
-            accZip.append(accidents * i) # percentage
+            per.append(a) # Percentage of people per zipcode (people/total people)
+            accZip.append(accidents * i)  # percentage of accidents per zipcode
 
         # sample boolean vector
-        return np.random.choice(1, size = len(self.pop_dic[region_nr]), p = accZip)
+        return np.random.choice(1, p = accZip)
 
         """
         accZip2 = ["%.2f" % e for e in accZip]
