@@ -141,28 +141,17 @@ class environment:
 
         per = []
         accZip = []
+        bool_acc = []
         for i in self.pop_dic[region_nr]:
             a = float(i) / totPop
             per.append(a) # Percentage of people per zipcode (people/total people)
             accZip.append(accidents * i)  # percentage of accidents per zipcode
+            # sample boolean vector
+            if np.random.rand() <= accidents * i:
+                bool = 1
+                bool_acc.append(bool)
+            else:
+                bool = 0
+                bool_acc = np.append(bool)
 
-        # sample boolean vector
-        return np.random.choice(1, p = accZip)
-
-        """
-        accZip2 = ["%.2f" % e for e in accZip]
-        # a= np.around(np.array(accZip),2)
-        # print(accZip2)     #print number of accidents per day (2 decimals) of zipcode in a list
-        totAccZip = sum(map(float, accZip))  # should be equal to accidents per day
-
-        zipMin = []
-        # per zipcode uniform distribution over time
-        # i= accident per 1440min
-        for i in accZip:
-            # zipMin = float(i)/1400.0   # min per day 1440    accidents/ min -> min/accident
-            zipMin.append(1440 / float(i))
-        zipMin2 = ["%.2f" % e for e in zipMin]
-        print(zipMin2)
-
-        # accidents uniform over time ->
-        """
+        return bool_acc
