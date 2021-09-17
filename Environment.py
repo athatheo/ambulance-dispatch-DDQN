@@ -49,7 +49,7 @@ class environment:
             self.postcode_dic.update({i: postcode_lst})
             self.pop_dic.update({i: pop_lst})
         print(self.postcode_dic)
-        print(self.pop_dic)
+        print("Population dictionary: {}".format(self.pop_dic))
 
         # number of registered accidents per region
         with open('Data/DataAllRegions.txt') as f:
@@ -127,8 +127,38 @@ class environment:
 
         return res
 
-    def sample_accidents(self):
+    def sample_accidents(self, region_nr):
         """
         sample accidents uniformly over time
         :return:
         """
+        accidentsYear = 10184  # read this value from DataAllRegions
+        totPop = sum(self.pop_dic[region_nr]) # get total number of people for region number
+
+        # Number of people per zipcode (people/total people)
+        per = []
+        for i in self.pop_dic[region_nr]:
+            a = float(i) / totPop
+            # print(a)
+            per.append(a)
+        # number of accidents per zipcode per day
+        accZip = []
+        for i in per:
+            accidents = accidentsYear / 365
+            accZip.append(accidents * i)
+
+        accZip2 = ["%.2f" % e for e in accZip]
+        # a= np.around(np.array(accZip),2)
+        # print(accZip2)     #print number of accidents per day (2 decimals) of zipcode in a list
+        totAccZip = sum(map(float, accZip))  # should be equal to accidents per day
+
+        zipMin = []
+        # per zipcode uniform distribution over time
+        # i= accident per 1440min
+        for i in accZip:
+            # zipMin = float(i)/1400.0   # min per day 1440    accidents/ min -> min/accident
+            zipMin.append(1440 / float(i))
+        zipMin2 = ["%.2f" % e for e in zipMin]
+        print(zipMin2)
+
+        # accidents uniform over time ->
