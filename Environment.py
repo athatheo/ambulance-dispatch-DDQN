@@ -3,18 +3,19 @@ import openpyxl
 import re
 import numpy as np
 
-class environment:
+
+class Environment:
 
     def __init__(self):
 
         self.pop_dic = {}  # for each region the population per postcode
         self.postcode_dic = {}  # for each region all available postcodes
         self.coverage_lst = []  # list of dictionaries; each dictionary contains the coverage time of one region
-        self.accidents = {} # number of total accidents per region
-        self.bases = {} # dictionary with all ambulance bases for each region
-        self.hospitals = {} # dictionary with region as keys and hospital postcodes as values
-        self.nr_postcodes = {} # records number of postcodes per region
-        self.nr_ambulances = {} # records number of ambulances per region
+        self.accidents = {}  # number of total accidents per region
+        self.bases = {}  # dictionary with all ambulance bases for each region
+        self.hospitals = {}  # dictionary with region as keys and hospital postcodes as values
+        self.nr_postcodes = {}  # records number of postcodes per region
+        self.nr_ambulances = {}  # records number of ambulances per region
 
         print("Initialisation complete")
 
@@ -25,13 +26,13 @@ class environment:
         :return: postcode_dict: dictionary with the region numbers as key and values corresponding to the postcodes per region
         """
 
-        for i in range(1,15):
+        for i in range(1, 25):
             # skip nonexisting region number
             if i == 13:
                 continue
 
             # read in coverage data (distances between postcodes of one region)
-            coverage_df = pd.read_excel('Data/coverage{}.xlsx'.format(i), header = None)
+            coverage_df = pd.read_excel('Data/coverage{}.xlsx'.format(i), header=None)
 
             self.coverage_lst.append(coverage_df.to_dict('list'))
 
@@ -55,7 +56,6 @@ class environment:
         # number of registered accidents per region
         with open('Data/DataAllRegions.txt') as f:
             lines = f.readlines()
-
 
         for line in lines[1:]:
             temp = re.findall(r'\d+', line)
@@ -100,6 +100,7 @@ class environment:
         :param hospital_loc: postal code of the hospital location
         :return: total travel time in s
         """
+
         def distance_time(a, b):
             """
             Caluclates the travel time between two postal codes
@@ -115,16 +116,18 @@ class environment:
             else:
                 i = region - 2
             return self.coverage_lst[i][B][A]
-    
+
         region = 0
         for i in self.hospitals:
             if (hospital_loc in self.hospitals[i]):
                 region = i
                 break
-            
-        initial_time = 1*60  # 1 min
-        buffer_time = 15*60  # 15 mins
-        res = initial_time + distance_time(ambulance_loc, accident_loc) + buffer_time + distance_time(accident_loc, hospital_loc) + distance_time(hospital_loc, ambulance_loc)
+
+        initial_time = 1 * 60  # 1 min
+        buffer_time = 15 * 60  # 15 mins
+        res = initial_time + distance_time(ambulance_loc, accident_loc) + buffer_time + distance_time(accident_loc,
+                                                                                                      hospital_loc) + distance_time(
+            hospital_loc, ambulance_loc)
 
         return res
 
@@ -135,7 +138,7 @@ class environment:
         :return: list of booleans indicating if accident happened or not per zipcode
         """
         accidentsYear = self.accidents[region_nr]
-        totPop = sum(self.pop_dic[region_nr]) # get total number of people for region number
+        totPop = sum(self.pop_dic[region_nr])  # get total number of people for region number
         accidents = accidentsYear / 365  # per day
         accidents = accidents / 86400  # per seconds
 
@@ -144,14 +147,14 @@ class environment:
         bool_acc = []
         for i in self.pop_dic[region_nr]:
             a = float(i) / totPop
-            per.append(a) # Percentage of people per zipcode (people/total people)
+            per.append(a)  # Percentage of people per zipcode (people/total people)
             accZip.append(accidents * i)  # percentage of accidents per zipcode
             # sample boolean vector
-            if np.random.rand() <= accidents * i:
+            if np.random.rand() <= accidents* a:
                 bool = 1
                 bool_acc.append(bool)
             else:
                 bool = 0
-                bool_acc = np.append(bool)
+                bool_acc.append(bool)
 
         return bool_acc
