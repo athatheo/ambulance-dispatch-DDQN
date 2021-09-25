@@ -71,7 +71,10 @@ class environment:
             res = re.split(',|;', line)
             temp = [re.findall(r'\d+', s) for s in res if re.findall(r'\d+', s) != []]
             reg_bases = {l[0]: l[1] for l in temp}
-            self.bases.update({i + 1: reg_bases})
+            if i < 12:
+                self.bases.update({i + 1: reg_bases})
+            else:
+                self.bases.update({i + 2: reg_bases})    
         print(self.bases)
 
         # retrieve the postcode locations for each hospital
