@@ -10,7 +10,7 @@ import torchvision.transforms as T
 
 from Environment import Environment
 
-NUM_OF_REGIONS = 25
+NUM_OF_REGIONS = 24 #region 13 does not exists
 NUM_OF_EPISODES = 100
 GAMMA = 1.00
 EPS_START = 0.9
@@ -31,8 +31,8 @@ def setup_sim():
 
 def didAccidentHappen(booleanList):
     if booleanList.count(1)>0:
-        return true
-    return false
+        return True
+    return False
 
 def select_action(state):
     global steps_done
@@ -44,13 +44,14 @@ def select_action(state):
     else:
         return 0#return random action
 
-for episode in range(n):
-    state = update_state(action)
-    action = select_action(state)
+def run():
+    for episode in range(n):
+        state = update_state(action)
+        action = select_action(state)
 
-    for second in range(HOURS*MINUTES*SECONDS):
-        for region in range(NUM_OF_REGIONS):
-            if didAccidentHappen(env.sample_accident(region)):
+        for second in range(HOURS*MINUTES*SECONDS):
+            for region in range(NUM_OF_REGIONS):
+                if didAccidentHappen(env.sample_accident(region)):
                 
 
 
