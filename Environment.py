@@ -95,41 +95,62 @@ class environment:
         print(self.nr_ambulances)
         print(self.nr_postcodes)
 
-    def calculate_ttt(self, ambulance_loc, accident_loc, hospital_loc):
+    def distance_time(self, a, b):
+        """
+        Caluclates the travel time between two postal codes
+        :param a: starting point of the measured time
+        :param b: ending point of the measured time        
+        :return: travel time in s
+        """
+        region = 0
+        for i in self.postcode_dic:
+            if (a in self.postcode_dic[i]):
+                region = i
+                break
+            elif (b in self.postcode_dic[i]):
+                region = i
+                break
+        
+        A = self.postcode_dic[region].index(a)
+        B = self.postcode_dic[region].index(b)
+
+        if region < 13:
+            i = region - 1
+        else:
+            i = region - 2
+        
+        return self.coverage_lst[i][B][A]
+    
+    def calculate_ttt(self, ambulance_loc, accident_loc):
         """
         Caluclates the total travel time for an ambulance plus 15 min buffer
         :param ambulance_loc: postal code of the ambulance location
         :param accident_loc: postal code of the accident location
-        :param hospital_loc: postal code of the hospital location
         :return: total travel time in s
         """
-        def distance_time(a, b):
-            """
-            Caluclates the travel time between two postal codes
-            :param a: starting point of the measured time
-            :param b: ending point of the measured time        
-            :return: travel time in s
-            """
-            A = self.postcode_dic[region].index(a)
-            B = self.postcode_dic[region].index(b)
-
-            if region < 13:
-                i = region - 1
-            else:
-                i = region - 2
-            return self.coverage_lst[i][B][A]
-    
         region = 0
-        for i in self.hospitals:
-            if (hospital_loc in self.hospitals[i]):
+        for i in self.postcode_dic:
+            if (accident_loc in self.postcode_dic[i]):
                 region = i
                 break
-            
-        initial_time = 1*60  # 1 min
-        buffer_time = 15*60  # 15 mins
-        res = initial_time + distance_time(ambulance_loc, accident_loc) + buffer_time + distance_time(accident_loc, hospital_loc) + distance_time(hospital_loc, ambulance_loc)
+
+        min_dist_time = 9999
+        hospital_loc = None
+    
+        for i, hospital in enumerate(self.hospitals[region]):
+            dist_time = self.distance_time(accident_loc, hospital)
+            if dist_time < min_dist_time:
+                min_dist_time = dist_time
+                hospital_loc = hospital
+
+        initial_time = 1 * 60  # 1 min
+        buffer_time = 15 * 60  # 15 mins
+        res = initial_time + self.distance_time(ambulance_loc, accident_loc) + buffer_time + self.distance_time(accident_loc,
+                                                                                                      hospital_loc) + self.distance_time(
+            hospital_loc, ambulance_loc)
 
         return res
+
 
     def sample_accidents(self, region_nr):
         """
