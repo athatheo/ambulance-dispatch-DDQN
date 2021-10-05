@@ -19,7 +19,7 @@ class Environment:
         self.nr_ambulances = {}  # records number of ambulances per region
         self.state_k = 6 # number of parameters passed saved per state
         self.prob_acc = {} # list of dictionaries with probability of accident occuring for each region, per zip code
-        self.curr_allStates = [] # saves current state of environment; KxN matrix that we then pass to the environment
+        self.curr_state = [] # saves current state of environment; KxN matrix that we then pass to the environment
 
         print("Initialisation complete")
 
@@ -172,8 +172,7 @@ class Environment:
         At the beginning of an episode initialize a state instance for each zip code of the given region.
         :param region_nr: number of region from current episode
         """
-        for i in range(len(self.postcode_dic[region_nr])):
-            self.curr_allStates.append(State(self, region_nr, i))
+        self.curr_state = State(self, region_nr)
 
     def process_action(self, action, time):
         """
@@ -181,11 +180,11 @@ class Environment:
         :param action: index of zip code that send out ambulance
         :param time: time of the day in seconds that ambulance was sent out
         """
-        if self.curr_allStates[action].nr_ambulances < 1:
+        if self.curr_state[action].nr_ambulances < 1:
             raise ValueError("No ambulances available to send out.")
         else:
-            self.curr_allStates[action].nr_ambulances -= 1
-        self.curr_allStates[action].time = time
+            self.curr_state[action].nr_ambulances -= 1
+        self.curr_state[action].time = time
 
 class State:
 
