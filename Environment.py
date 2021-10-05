@@ -5,6 +5,7 @@ import numpy as np
 
 
 class Environment:
+    """Environment class containing information about all ambulances, regions, zipcodes, populations and hospitals."""
 
     def __init__(self):
 
@@ -18,6 +19,7 @@ class Environment:
         self.nr_ambulances = {}  # records number of ambulances per region
         self.state_k = 6 # number of parameters passed saved per state
         self.prob_acc = {} # list of dictionaries with probability of accident occuring for each region, per zip code
+        self.curr_allStates = [] # saves current state of environment; KxN matrix that we then pass to the environment
 
 
         print("Initialisation complete")
@@ -183,30 +185,41 @@ class Environment:
 
     def initialize_space(self, region_nr):
         """
-        At the beginning of an episode initialize a state for the given region with all available ambulances.
-        Initializes it with time of day = 0 and travel time = 0 because no accidents have occured yet.
+        At the beginning of an episode initialize a state instance for each zip code of the given region.
         :param region_nr: number of region from current episode
         """
+        for curr_zipcode in range(len(self.postcode_dic[region_nr])):
+            self.curr_allStates.append(State(self, region_nr, curr_zipcode))
 
-        N = len(self.postcode_dic[region_nr])
-        self.curr_state = []
-        # initialize K-array for each zip code: travel time, delta, time of day
-        for i in range(N):
-            curr_zipcode = self.postcode_dic[region_nr][i]
-            if curr_zipcode in self.bases[region_nr]:
-                is_base = 1
-            else:
-                is_base = 0
+    def process_action(self, action, time):
+        """
+        Takes an action (ambulance sent out) and returns the new state and reward.
+        :param action: index of zip code that send out ambulance
+        :param time: time of the day in seconds that ambulance was sent out
+        """
+        if self.curr_allStates[action].nr_ambulances < 1:
+            raise ValueError("No ambulances available to send out.")
+        else:
+            self.curr_allStates[action].nr_ambulances -= 1
+        self.curr_allStates[action].time = time
 
-            self.curr_state.append([0, #boolean accident = 0
-                                    self.nr_ambulances[region_nr], # nr ambulances
-                                    is_base, # boolean base
-                                    0, # travel time = 0 because no accident
-                                    self.prob_acc[region_nr][i], # delta = probability of next accident occuring in this zipcode
-                                    0]) # time of day
+class State:
 
-        self.k = len(self.curr_state[-1])  # number of parameters available
+    def __init__(self, env, region_nr, curr_zipcode):
+        """"
+        Initializes a state for the given zipcode in the specified region.
+        All ambulances are initially available and no accidents have occured yet.
+        """
 
-    def process_action(self, action):
-        """Takes an action (ambulance sent out) and returns the new state and reward."""
-        return None
+        self.bool_accident = 0
+        self.nr_ambulances = env.nr_ambulances[region_nr]
+        self.is_base = self.check_isBase(curr_zipcode, region_nr)
+        self.travel_time = 0
+        self.delta = env.prob_acc[region_nr][curr_zipcode]
+        self.time = 0
+
+    def check_isBase(self, zip_code, region_nr):
+        if zip_code in self.bases[region_nr]:
+            return True
+        else:
+            return False
