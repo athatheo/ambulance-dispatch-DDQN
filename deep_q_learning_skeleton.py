@@ -26,7 +26,7 @@ RMSIZE = 10000
 ################ Define DQN (Deep Q Network) class ################
 
 class QNet_MLP(nn.Module):
-    def __init__(self, act_space, obs_space, discount=DEFAULT_DISCOUNT, learning_rate=LEARNING_RATE):
+    def __init__(self, num_in, discount=DEFAULT_DISCOUNT, learning_rate=LEARNING_RATE):
         """ Constructor method. Set up NN
         :param act_space: number of actions possible (number of ambulances that can be dispatched
         :param obs_space: number of observation returned for state (number of accidents happening???)
@@ -36,30 +36,27 @@ class QNet_MLP(nn.Module):
 
         self.discount = discount
         self.learning_rate = learning_rate
-        self.act_space = act_space
 
-        self.init_network(obs_space, act_space)
+        self.init_network(num_in)
         self.init_optimizer()
 
     def init_optimizer(self):
         self.loss_fn = torch.nn.MSELoss(reduction='sum')
         self.optimizer = torch.optim.RMSprop(self.parameters(), lr=self.learning_rate, alpha=0.9)
 
-    def init_network(self, obs_space, num_a):
+    def init_network(self, num_in):
         """
         Initialization of NN with one 512 hidden layer and masking before output (not sure if this should be applied here)
         :param input: matrix recording where incidents happened and ambulances are available per zip code
         :param num_a: number of available ambulance (int)
         :return:
         """
-        num_in = len(obs_space) # number of zip-codes in region
         HIDDEN_NODES1 = 512
-        K = 6
 
         ### MLP
-        self.fc1 = nn.Linear(K, HIDDEN_NODES1)
-        self.fc2 = nn.Linear(HIDDEN_NODES1, MAX_NR_AMBULANCE) #
-        self.fc3 = nn.Linear(MAX_NR_AMBULANCE, num_a)  # this should be where masking is applied
+        self.fc1 = nn.Linear(num_in, HIDDEN_NODES1)
+        self.fc2 = nn.Linear(HIDDEN_NODES1, MAX_NR_ZIPCODES) #
+        #self.fc3 = nn.Linear(MAX_NR_ZIPCODES, num_a)  # this should be where masking is applied
 
         nn.init.xavier_uniform_(self.fc1.weight)
         nn.init.xavier_uniform_(self.fc2.weight)
@@ -70,13 +67,16 @@ class QNet_MLP(nn.Module):
 
         x = F.ReLU(self.fc1(x))
         x = F.ReLU(self.fc2(x))
-        x = self.fc3(x)
+        #x = self.fc3(x)
         return x
 
     def act(self, state):
-        """Act either randomly or by predicting action that returns max Q"""
+        """
+        Act either randomly or by predicting action that returns max Q
+        :param state: KxN matrix
+        """
         if np.random.rand() < self.EPSILON:
-            action = random.randrange(self.act_space)
+            action = random.randrange(self.act_space) # change to choose one of the bases
         else:
             # Otherwise get predicted Q values of actions
             q_values = self.net(torch.FloatTensor(state))

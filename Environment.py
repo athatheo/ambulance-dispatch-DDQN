@@ -21,7 +21,6 @@ class Environment:
         self.prob_acc = {} # list of dictionaries with probability of accident occuring for each region, per zip code
         self.curr_allStates = [] # saves current state of environment; KxN matrix that we then pass to the environment
 
-
         print("Initialisation complete")
 
     def import_data(self):
@@ -173,8 +172,8 @@ class Environment:
         At the beginning of an episode initialize a state instance for each zip code of the given region.
         :param region_nr: number of region from current episode
         """
-        for curr_zipcode in range(len(self.postcode_dic[region_nr])):
-            self.curr_allStates.append(State(self, region_nr, curr_zipcode))
+        for i in range(len(self.postcode_dic[region_nr])):
+            self.curr_allStates.append(State(self, region_nr, i))
 
     def process_action(self, action, time):
         """
@@ -190,21 +189,24 @@ class Environment:
 
 class State:
 
-    def __init__(self, env, region_nr, curr_zipcode):
+    def __init__(self, env, region_nr):
         """"
         Initializes a state for the given zipcode in the specified region.
         All ambulances are initially available and no accidents have occured yet.
         """
 
-        self.bool_accident = 0
+        self.bool_accident = [0] * len(env.postcode_dic[region_nr])
         self.nr_ambulances = env.nr_ambulances[region_nr]
-        self.is_base = self.check_isBase(curr_zipcode, region_nr)
-        self.travel_time = 0
-        self.delta = env.prob_acc[region_nr][curr_zipcode]
-        self.time = 0
+        self.is_base = self.check_isBase(env, region_nr)
+        self.travel_time = [0] * len(env.postcode_dic[region_nr])
+        self.delta = env.prob_acc[region_nr]
+        self.time = [0] * len(env.postcode_dic[region_nr])
 
-    def check_isBase(self, zip_code, region_nr):
-        if zip_code in self.bases[region_nr]:
-            return True
-        else:
-            return False
+    def check_isBase(self, env, region_nr):
+        isBase = []
+        for zip_code in env.postcode_dic[region_nr]:
+            if zip_code in env.bases[region_nr]:
+                isBase.append(1)
+            else:
+                isBase.append(0)
+        return isBase

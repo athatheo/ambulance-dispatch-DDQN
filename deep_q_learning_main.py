@@ -23,7 +23,7 @@ if RUN:
     shape_o = env.state_k # number of parameters passed
 
     # set up policy DQN
-    qn = QNet_MLP(num_a, shape_o)
+    qn = QNet_MLP(env.state_k)
     # set up target DQN
     target_qn = QNet_MLP(num_a, shape_o)
     # set up Q learner (learning the network weights)
