@@ -8,9 +8,9 @@ import math
 # import torch.nn.functional as F
 # import torchvision.transforms as T
 
-from Environment import Environment
+from Environment import Environment, State
 
-NUM_OF_REGIONS = 25
+NUM_OF_REGIONS = 24
 NUM_OF_EPISODES = 100
 GAMMA = 1.00
 EPS_START = 0.9
@@ -29,63 +29,50 @@ HOURS = 24
 def setup_sim():
     env = Environment()
     env.import_data()
-    availability = env.bases
 
 def didAccidentHappen(booleanList):
     if booleanList.count(1)>0:
-        return true
-    return false
+        return True
+    return False
 
-def get_accident_location(booleanList):
+def get_accident_location(env, region_nr, booleanList):
     for i in booleanList:
         if i == 1:
             accident_index = i
     
-    return self.postcode_dic[region][i]
+    return env.postcode_dic[region_nr][accident_index]
 
-def select_action(state):
-    global steps_done
-    steps_done += 1
+def select_action(state, env, region_nr, accident_loc):
     min_dist_time = 9999
-    dist_argmin = 0
-    
-    for i, base in enumerate(state):
-        dist_time = env.distance_time(base, accident_loc)
-        if dist_time < min_dist_time:
-            min_dist_time = dist_time
-            dist_argmin = base
+    min_base = 0
+    nr_ambulances = state.nr_ambulances
+    travel_time = state.travel_time
 
-    availability[region][dist_argmin] -= 1
-    counter[region][dist_argmin] = env.calculate_ttt(dist_argmin, accident_loc)
+    for i, base in enumerate(nr_ambulances):
+        # dist_time = env.distance_time(base, accident_loc)
+        if travel_time < min_dist_time:
+            min_dist_time = travel_time
+            min_base = base
 
-    return accident_loc, dist_argmin, min_dist_time, env.calculate_ttt(dist_argmin, accident_loc)
+    # availability[region_nr][min_base] -= 1
+    # counter[region_nr][min_base] = env.calculate_ttt(min_base, accident_loc)
 
-def update_state(action):
-    bases_lst = env.bases[region]
-    available_bases = []
-    for i, base in enumerate(bases_lst):
-        if bases_lst[base] - availability[region][base] > 0:
-            available_bases.append(int(base))
-
-    return available_bases
-
-def reset(region):
-    return env.bases[region]
+    return min_base, min_dist_time, env.calculate_ttt(min_base, accident_loc)
 
 def run_sim():
-    for episode in range(n):
-        state = reset()
+    env = Environment()
+    env.import_data()
+    
+    for episode in range(NUM_OF_EPISODES):
+        region = random.choice(range(1, NUM_OF_REGIONS+1))
+        state = State(env, region)
 
         for second in range(HOURS*MINUTES*SECONDS):
-            for region in range(NUM_OF_REGIONS):
-                for counter_ in self.counter[region]:
-                    if counter_ > 0:
-                        counter_ -= 1
-                        if counter_ == 0:
-                            self.availability[region][counter_] += 1
-
-                if didAccidentHappen(env.sample_accidents(region)):
-                    accident_loc = get_accident_location(env.sample_accidents(region))
-                    action = select_action(state)
-                    new_state = update_state(action)
+            if didAccidentHappen(env.sample_accidents(region)):
+                accident_loc = get_accident_location(env, region, env.sample_accidents(region))
+                action = select_action(state, env, region, accident_loc)
+                new_state, reward = state.process_action(action, second)
+            else:
+                new_state = state
+                reward = 0
 
