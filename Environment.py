@@ -2,9 +2,11 @@ import pandas as pd
 import openpyxl
 import re
 import numpy as np
+import torch
 
 
 class Environment:
+    """Environment class containing information about all ambulances, regions, zipcodes, populations and hospitals."""
 
     def __init__(self):
 
@@ -16,6 +18,9 @@ class Environment:
         self.hospitals = {}  # dictionary with region as keys and hospital postcodes as values
         self.nr_postcodes = {}  # records number of postcodes per region
         self.nr_ambulances = {}  # records number of ambulances per region
+        self.state_k = 6 # number of parameters passed saved per state
+        self.prob_acc = {} # list of dictionaries with probability of accident occuring for each region, per zip code
+        self.curr_state = [] # saves current state of environment; KxN matrix that we then pass to the environment
 
         print("Initialisation complete")
 
@@ -50,8 +55,6 @@ class Environment:
 
             self.postcode_dic.update({i: postcode_lst})
             self.pop_dic.update({i: pop_lst})
-        print(self.postcode_dic)
-        print("Population dictionary: {}".format(self.pop_dic))
 
         # number of registered accidents per region
         with open('Data/DataAllRegions.txt') as f:
@@ -61,7 +64,6 @@ class Environment:
             temp = re.findall(r'\d+', line)
             values = list(map(int, temp))
             self.accidents.update({values[0]: values[1]})
-        print("Accidents: {}".format(self.accidents))
 
         # location of bases and number of ambulances per base
         with open('Data/xMEXCLP_all.txt') as f:
@@ -71,8 +73,10 @@ class Environment:
             res = re.split(',|;', line)
             temp = [re.findall(r'\d+', s) for s in res if re.findall(r'\d+', s) != []]
             reg_bases = {l[0]: l[1] for l in temp}
-            self.bases.update({i + 1: reg_bases})
-        print(self.bases)
+            if i < 12:
+                self.bases.update({i + 1: reg_bases})
+            else:
+                self.bases.update({i + 2: reg_bases})  
 
         # retrieve the postcode locations for each hospital
         # retrieve the postcode locations for each hospital
@@ -82,59 +86,56 @@ class Environment:
         for line in lines:
             res = re.split(',|:', line.strip('\n'))
             self.hospitals.update({int(res[0]): list(map(int, res[1:]))})
-        print(self.hospitals)
 
         # extract region sizes and ambulances per region
         ambuRegion = pd.read_excel('Data/NumberPCAmbuRegion.xlsx')
         ambuRegion = ambuRegion.set_index('Region')
         self.nr_postcodes = ambuRegion['Postal codes'].to_dict()
         self.nr_ambulances = ambuRegion['ambulances'].to_dict()
-        print(self.nr_ambulances)
-        print(self.nr_postcodes)
+        print("Import data complete")
 
-    def distance_time(self, a, b):
-        """            
+        # calculate probability of accidents per region and zipcode
+        for region_nr in self.postcode_dic:
+            accidentsYear = self.accidents[region_nr]
+            totPop = sum(self.pop_dic[region_nr])  # get total number of people for region number
+            accidents = accidentsYear / 365  # per day
+            accidents = accidents / 86400  # per seconds
+
+            accZip = []
+            for pop_zipcode in self.pop_dic[region_nr]:
+                accZip = accidents * (float(pop_zipcode) / totPop) # is this correct???
+
+            self.prob_acc.update({region_nr: accZip})
+
+    def distance_time(self, region_nr, a, b):
+        """
         Caluclates the travel time between two postal codes
         :param a: starting point of the measured time
-        :param b: ending point of the measured time        
+        :param b: ending point of the measured time
         :return: travel time in s
         """
-        region = 0
-        for i in self.postcode_dic:
-            if (a in self.postcode_dic[i]):
-                region = i
-                break
-            elif (b in self.postcode_dic[i]):
-                region = i
-                break 
-        
-        A = self.postcode_dic[region].index(a)
-        B = self.postcode_dic[region].index(b)
 
-        if region < 13:
-            i = region - 1
+        A = self.postcode_dic[region_nr].index(a)
+        B = self.postcode_dic[region_nr].index(b)
+
+        if region_nr < 13:
+            i = region_nr - 1
         else:
-            i = region - 2
+            i = region_nr - 2
         return self.coverage_lst[i][B][A]
 
-    def calculate_ttt(self, ambulance_loc, accident_loc):
+    def calculate_ttt(self, region_nr, ambulance_loc, accident_loc):
         """
-        Caluclates the total travel time for an ambulance plus 15 min buffer
+        Caluclates the total travel time for an ambulance to the CLOSEST hosptial plus 15 min buffer
         :param ambulance_loc: postal code of the ambulance location
         :param accident_loc: postal code of the accident location
         :param hospital_loc: postal code of the hospital location
         :return: total travel time in s
         """
-        region = 0
-        for i in self.postcode_dic:
-            if (accident_loc in self.postcode_dic[i]):
-                region = i
-                break
-
         min_dist_time = 9999
         hospital_loc = None
-    
-        for i, hospital in enumerate(self.hospitals[region]):
+
+        for i, hospital in enumerate(self.hospitals[region_nr]):
             dist_time = self.distance_time(accident_loc, hospital)
             if dist_time < min_dist_time:
                 min_dist_time = dist_time
@@ -142,8 +143,9 @@ class Environment:
 
         initial_time = 1 * 60  # 1 min
         buffer_time = 15 * 60  # 15 mins
-        res = initial_time + self.distance_time(ambulance_loc, accident_loc) + buffer_time + self.distance_time(accident_loc,
-                                                                                                      hospital_loc) + self.distance_time(
+        res = initial_time + self.distance_time(region_nr, ambulance_loc, accident_loc) + buffer_time + self.distance_time(region_nr,
+            accident_loc,
+            hospital_loc) + self.distance_time(region_nr,
             hospital_loc, ambulance_loc)
 
         return res
@@ -154,24 +156,75 @@ class Environment:
         :param: region number for region of interest
         :return: list of booleans indicating if accident happened or not per zipcode
         """
-        accidentsYear = self.accidents[region_nr]
-        totPop = sum(self.pop_dic[region_nr])  # get total number of people for region number
-        accidents = accidentsYear / 365  # per day
-        accidents = accidents / 86400  # per seconds
-
-        per = []
-        accZip = []
+        accident_prob = self.prob_acc[region_nr]
         bool_acc = []
-        for i in self.pop_dic[region_nr]:
-            a = float(i) / totPop
-            per.append(a)  # Percentage of people per zipcode (people/total people)
-            accZip.append(accidents * i)  # percentage of accidents per zipcode
-            # sample boolean vector
-            if np.random.rand() <= accidents* a:
-                bool = 1
-                bool_acc.append(bool)
-            else:
-                bool = 0
-                bool_acc.append(bool)
+        
+        # sample boolean vector
+        if np.random.rand() <= accident_prob:
+            bool = 1
+        else:
+            bool = 0
+        bool_acc.append(bool)
 
         return bool_acc
+
+class State:
+
+    def __init__(self, env, region_nr):
+        """"
+        New state space at beginning of each episode.
+        Initializes a state for the given zipcode in the specified region.
+        All ambulances are initially available and no accidents have occured yet.
+        """
+
+        self.env = env
+        self.K = 6
+        self.N = len(env.postcode_dic[region_nr])
+
+        self.bool_accident = [0] * len(env.postcode_dic[region_nr])
+        self.nr_ambulances = env.nr_ambulances[region_nr]
+        self.is_base = self.check_isBase(env, region_nr)
+        self.travel_time = [0] * len(env.postcode_dic[region_nr]) # time from base to accident
+        self.delta = env.prob_acc[region_nr]
+        self.time = [0] * len(env.postcode_dic[region_nr])
+
+    def check_isBase(self, env, region_nr):
+        """
+        Find all bases in a region
+        :param env:
+        :param region_nr:
+        :return: boolean list indicating if zip-code has a base or not
+        """
+        isBase = []
+        for zip_code in env.postcode_dic[region_nr]:
+            if zip_code in env.bases[region_nr]:
+                isBase.append(1)
+            else:
+                isBase.append(0)
+        return isBase
+
+    def process_action(self, action, time):
+        """
+        Takes an action (ambulance sent out) and returns the new state and reward.
+        :param action: index of zip code that send out ambulance
+        :param time: time of the day in seconds that ambulance was sent out
+        :return reward: minus time from ambulance to the accident
+        """
+        if self.nr_ambulances[action] < 1:
+            raise ValueError("No ambulances available to send out.")
+        else:
+            self.nr_ambulances[action] -= 1
+        self.time[action] = time
+        return self.travel_time[action]
+
+    def get_torch(self):
+        """
+        Transform state object into a KxN torch, where K = number of parameters and N = number of zipcodes
+        :return:
+        """
+        return torch.tensor([self.bool_accident,
+                      self.nr_ambulances,
+                      self.is_base,
+                      self.travel_time,
+                      self.delta,
+                      self.time]).transpose(self.K, self.N)
