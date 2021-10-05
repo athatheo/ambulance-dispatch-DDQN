@@ -71,7 +71,10 @@ class Environment:
             res = re.split(',|;', line)
             temp = [re.findall(r'\d+', s) for s in res if re.findall(r'\d+', s) != []]
             reg_bases = {l[0]: l[1] for l in temp}
-            self.bases.update({i + 1: reg_bases})
+            if i < 12:
+                self.bases.update({i + 1: reg_bases})
+            else:
+                self.bases.update({i + 2: reg_bases})  
 
         # retrieve the postcode locations for each hospital
         # retrieve the postcode locations for each hospital
@@ -102,29 +105,21 @@ class Environment:
 
             self.prob_acc.update({region_nr: accZip})
 
-    def distance_time(self, a, b):
+    def distance_time(self, region_nr, a, b):
         """
         Caluclates the travel time between two postal codes
         :param a: starting point of the measured time
         :param b: ending point of the measured time
         :return: travel time in s
         """
-        region = 0
-        for i in self.postcode_dic:
-            if (a in self.postcode_dic[i]):
-                region = i
-                break
-            elif (b in self.postcode_dic[i]):
-                region = i
-                break
 
-        A = self.postcode_dic[region].index(a)
-        B = self.postcode_dic[region].index(b)
+        A = self.postcode_dic[region_nr].index(a)
+        B = self.postcode_dic[region_nr].index(b)
 
-        if region < 13:
-            i = region - 1
+        if region_nr < 13:
+            i = region_nr - 1
         else:
-            i = region - 2
+            i = region_nr - 2
         return self.coverage_lst[i][B][A]
 
     def calculate_ttt(self, region_nr, ambulance_loc, accident_loc):
@@ -146,9 +141,9 @@ class Environment:
 
         initial_time = 1 * 60  # 1 min
         buffer_time = 15 * 60  # 15 mins
-        res = initial_time + self.distance_time(ambulance_loc, accident_loc) + buffer_time + self.distance_time(
+        res = initial_time + self.distance_time(region_nr, ambulance_loc, accident_loc) + buffer_time + self.distance_time(region_nr,
             accident_loc,
-            hospital_loc) + self.distance_time(
+            hospital_loc) + self.distance_time(region_nr,
             hospital_loc, ambulance_loc)
 
         return res
@@ -159,25 +154,15 @@ class Environment:
         :param: region number for region of interest
         :return: list of booleans indicating if accident happened or not per zipcode
         """
-        accidentsYear = self.accidents[region_nr]
-        totPop = sum(self.pop_dic[region_nr])  # get total number of people for region number
-        accidents = accidentsYear / 365  # per day
-        accidents = accidents / 86400  # per seconds
-
-        per = []
-        accZip = []
+        accident_prob = self.prob_acc[region_nr]
         bool_acc = []
-        for i in self.pop_dic[region_nr]:
-            a = float(i) / totPop
-            per.append(a)  # Percentage of people per zipcode (people/total people)
-            accZip.append(accidents * i)  # percentage of accidents per zipcode
-            # sample boolean vector
-            if np.random.rand() <= accidents* a:
-                bool = 1
-                bool_acc.append(bool)
-            else:
-                bool = 0
-                bool_acc.append(bool)
+        
+        # sample boolean vector
+        if np.random.rand() <= accident_prob:
+            bool = 1
+        else:
+            bool = 0
+        bool_acc.append(bool)
 
         return bool_acc
 
