@@ -2,6 +2,7 @@ import pandas as pd
 import openpyxl
 import re
 import numpy as np
+import torch
 
 
 class Environment:
@@ -176,14 +177,24 @@ class State:
         All ambulances are initially available and no accidents have occured yet.
         """
 
+        self.env = env
+        self.K = 6
+        self.N = len(env.postcode_dic[region_nr])
+
         self.bool_accident = [0] * len(env.postcode_dic[region_nr])
         self.nr_ambulances = env.nr_ambulances[region_nr]
         self.is_base = self.check_isBase(env, region_nr)
-        self.travel_time = [0] * len(env.postcode_dic[region_nr])
+        self.travel_time = [0] * len(env.postcode_dic[region_nr]) # time from base to accident
         self.delta = env.prob_acc[region_nr]
         self.time = [0] * len(env.postcode_dic[region_nr])
 
     def check_isBase(self, env, region_nr):
+        """
+        Find all bases in a region
+        :param env:
+        :param region_nr:
+        :return: boolean list indicating if zip-code has a base or not
+        """
         isBase = []
         for zip_code in env.postcode_dic[region_nr]:
             if zip_code in env.bases[region_nr]:
@@ -197,9 +208,23 @@ class State:
         Takes an action (ambulance sent out) and returns the new state and reward.
         :param action: index of zip code that send out ambulance
         :param time: time of the day in seconds that ambulance was sent out
+        :return reward: minus time from ambulance to the accident
         """
-        if self.nr_ambulances < 1:
+        if self.nr_ambulances[action] < 1:
             raise ValueError("No ambulances available to send out.")
         else:
-            self.nr_ambulances -= 1
-        self.time = time
+            self.nr_ambulances[action] -= 1
+        self.time[action] = time
+        return self.travel_time[action]
+
+    def get_torch(self):
+        """
+        Transform state object into a KxN torch, where K = number of parameters and N = number of zipcodes
+        :return:
+        """
+        return torch.tensor([self.bool_accident,
+                      self.nr_ambulances,
+                      self.is_base,
+                      self.travel_time,
+                      self.delta,
+                      self.time]).transpose(self.K, self.N)
