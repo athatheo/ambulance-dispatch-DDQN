@@ -167,29 +167,11 @@ class Environment:
 
         return bool_acc
 
-    def initialize_space(self, region_nr):
-        """
-        At the beginning of an episode initialize a state instance for each zip code of the given region.
-        :param region_nr: number of region from current episode
-        """
-        self.curr_state = State(self, region_nr)
-
-    def process_action(self, action, time):
-        """
-        Takes an action (ambulance sent out) and returns the new state and reward.
-        :param action: index of zip code that send out ambulance
-        :param time: time of the day in seconds that ambulance was sent out
-        """
-        if self.curr_state[action].nr_ambulances < 1:
-            raise ValueError("No ambulances available to send out.")
-        else:
-            self.curr_state[action].nr_ambulances -= 1
-        self.curr_state[action].time = time
-
 class State:
 
     def __init__(self, env, region_nr):
         """"
+        New state space at beginning of each episode.
         Initializes a state for the given zipcode in the specified region.
         All ambulances are initially available and no accidents have occured yet.
         """
@@ -209,3 +191,15 @@ class State:
             else:
                 isBase.append(0)
         return isBase
+
+    def process_action(self, action, time):
+        """
+        Takes an action (ambulance sent out) and returns the new state and reward.
+        :param action: index of zip code that send out ambulance
+        :param time: time of the day in seconds that ambulance was sent out
+        """
+        if self.nr_ambulances < 1:
+            raise ValueError("No ambulances available to send out.")
+        else:
+            self.nr_ambulances -= 1
+        self.time = time
