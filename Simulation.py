@@ -34,6 +34,13 @@ def didAccidentHappen(booleanList):
         return True
     return False
 
+def get_accident_location(region_nr, booleanList):
+    for i in booleanList:
+        if i == 1:
+            accident_index = i
+    
+    return env.postcode_dic[region_nr][accident_index]
+
 def select_action(state):
     global steps_done
     sample = random.random()
