@@ -72,16 +72,13 @@ class QNet_MLP(nn.Module):
 
     def act(self, state):
         """
-        Act either randomly or by predicting action that returns max Q
-        :param state: KxN matrix
+        Has a tensor KxN as an input state and runs the model with it, returning the desired action
+        :param state: torch.tensor KxN matrix
         """
-        if np.random.rand() < self.EPSILON:
-            action = random.randrange(self.act_space) # change to choose one of the bases
-        else:
-            # Otherwise get predicted Q values of actions
-            q_values = self.net(torch.FloatTensor(state))
-            # Get indec of action with best Q
-            action = np.argmax(q_values.detach().numpy()[0])
+
+        q_values = self.net(torch.FloatTensor(state))
+        action = np.argmax(q_values.detach().numpy()[0])
+
         return action
 
 
@@ -89,17 +86,17 @@ class QNet_MLP(nn.Module):
 
 class QLearner(object):
 
-    def __init__(self, env, q_function, qn_target, discount=DEFAULT_DISCOUNT, rm_size=RMSIZE):
+    def __init__(self, env, policy_net, target_net, discount=DEFAULT_DISCOUNT, rm_size=RMSIZE):
         """
         Construct the Q-learner.
         :param env: instance of Environment.py
-        :param q_function: instance of Deep Q-network class
-        :param qn_target:
+        :param policy_net: instance of Deep Q-network class
+        :param target_net:
         :param discount:
         :param rm_size:
         """
         self.env = env
-        self.Q = q_function # this is the dqn
+        self.policy_net = policy_net # this is the dqn
         #self.rm = ReplayMemory(rm_size)  # replay memory stores (a subset of) experience across episode
         self.discount = discount
 
@@ -108,7 +105,7 @@ class QLearner(object):
         self.epsilon_decay = .98
 
         #self.batch_size = BATCH_SIZE
-        self.target_network = qn_target
+        self.target_net = target_net
 
         self.name = "agent1"
         self.episode = 0
@@ -121,7 +118,7 @@ class QLearner(object):
         if random.random() < self.epsilon:
             action = random.randint(0, self.env.action_space - 1)
         else:
-            action = self.Q.argmax_Q_value(state)
+            action = self.policy_net.act(state)
         return action
 
     def process_action(self, action, reward):
