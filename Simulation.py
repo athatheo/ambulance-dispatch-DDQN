@@ -57,7 +57,8 @@ def select_action(state, env, region_nr, accident_loc):
     # availability[region_nr][min_base] -= 1
     # counter[region_nr][min_base] = env.calculate_ttt(min_base, accident_loc)
 
-    return min_base, min_dist_time, env.calculate_ttt(min_base, accident_loc)
+    return nr_ambulances.index(min_base), env.calculate_ttt(min_base, accident_loc)
+    # return nr_ambulances.index(min_base), min_base
 
 def run_sim():
     env = Environment()
@@ -68,10 +69,15 @@ def run_sim():
         state = State(env, region)
 
         for second in range(HOURS*MINUTES*SECONDS):
+            if state.ambulances_out[second]:
+                state.nr_ambulances[state.ambulances_out[second]] += 1 
+                if len(state.waiting_list) > 0:
+                    state.nr_ambulances[state.ambulances_out[second]] -= 1
             if didAccidentHappen(env.sample_accidents(region)):
                 accident_loc = get_accident_location(env, region, env.sample_accidents(region))
-                action = select_action(state, env, region, accident_loc)
-                new_state, reward = state.process_action(action, second)
+                state.update_travel_time(env, region, accident_loc)
+                action, total_travel_time = select_action(state, env, region, accident_loc)
+                new_state, reward = state.process_action(action, total_travel_time, second, accident_loc)
             else:
                 new_state = state
                 reward = 0

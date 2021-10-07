@@ -180,6 +180,8 @@ class State:
         self.env = env
         self.K = 6
         self.N = len(env.postcode_dic[region_nr])
+        self.ambulances_out = []
+        self.waiting_list = []
 
         self.bool_accident = [0] * len(env.postcode_dic[region_nr])
         self.nr_ambulances = env.nr_ambulances[region_nr]
@@ -202,8 +204,19 @@ class State:
             else:
                 isBase.append(0)
         return isBase
+    
+    def update_travel_time(self, env, region_nr, accident_loc):
+        """
+        Takes the accident location and updates the travel_time list.
+        :param env:
+        :param region_nr:
+        :param accident_loc: zip code that send out ambulance
+        """
+        for i, base in enumerate(env.postcode_dic[region_nr]):
+            self.travel_time[i] = env.distance_time(region_nr, int(base), accident_loc)  
 
-    def process_action(self, action, time):
+
+    def process_action(self, action, total_travel_time, time, accident_loc):
         """
         Takes an action (ambulance sent out) and returns the new state and reward.
         :param action: index of zip code that send out ambulance
@@ -211,11 +224,13 @@ class State:
         :return reward: minus time from ambulance to the accident
         """
         if self.nr_ambulances[action] < 1:
-            raise ValueError("No ambulances available to send out.")
+            # raise ValueError("No ambulances available to send out.")
+            self.waiting_list.append(accident_loc)
         else:
             self.nr_ambulances[action] -= 1
+            self.ambulances_out.update({total_travel_time + time: action})
         self.time[action] = time
-        return self.travel_time[action]
+        return self, -self.travel_time[action]
 
     def get_torch(self):
         """
