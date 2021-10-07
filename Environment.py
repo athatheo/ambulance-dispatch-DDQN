@@ -72,11 +72,8 @@ class Environment:
         for i, line in enumerate(lines):
             res = re.split(',|;', line)
             temp = [re.findall(r'\d+', s) for s in res if re.findall(r'\d+', s) != []]
-            reg_bases = {l[0]: l[1] for l in temp}
-            if i < 12:
-                self.bases.update({i + 1: reg_bases})
-            else:
-                self.bases.update({i + 2: reg_bases})  
+            reg_bases = {int(l[0]): int(l[1]) for l in temp}
+            self.bases.update({int(i + 1): reg_bases})
 
         # retrieve the postcode locations for each hospital
         # retrieve the postcode locations for each hospital
@@ -103,7 +100,7 @@ class Environment:
 
             accZip = []
             for pop_zipcode in self.pop_dic[region_nr]:
-                accZip = accidents * (float(pop_zipcode) / totPop) # is this correct???
+                accZip.append(accidents * (float(pop_zipcode) / totPop))
 
             self.prob_acc.update({region_nr: accZip})
 
@@ -176,21 +173,23 @@ class State:
         Initializes a state for the given zipcode in the specified region.
         All ambulances are initially available and no accidents have occured yet.
         """
-
+        # Doesn't it initialize a state for the region and not the specific zipcode?
         self.env = env
         self.K = 6
         self.N = len(env.postcode_dic[region_nr])
-        self.ambulances_out = []
+        self.ambulance_return = {}  # Dictionary with key: when will an ambulance return and value: zip code of base
+        self.region_nr = region_nr
         self.waiting_list = []
 
-        self.bool_accident = [0] * len(env.postcode_dic[region_nr])
-        self.nr_ambulances = env.nr_ambulances[region_nr]
-        self.is_base = self.check_isBase(env, region_nr)
-        self.travel_time = [0] * len(env.postcode_dic[region_nr]) # time from base to accident
+        self.bool_accident = [0] * self.N
+        # is_base: boolean list of whether an env.postcode_dic[region_nr][i] zip_code is a base
+        # nr_ambulances: int list of how many ambulances are available per zip_code
+        self.is_base, self.nr_ambulances = self.check_isBase()
+        self.travel_time = [0] * self.N  # time from base to accident
         self.delta = env.prob_acc[region_nr]
-        self.time = [0] * len(env.postcode_dic[region_nr])
+        self.time = [0] * self.N
 
-    def check_isBase(self, env, region_nr):
+    def check_isBase(self):
         """
         Find all bases in a region
         :param env:
@@ -198,39 +197,60 @@ class State:
         :return: boolean list indicating if zip-code has a base or not
         """
         isBase = []
-        for zip_code in env.postcode_dic[region_nr]:
-            if zip_code in env.bases[region_nr]:
+        nr_ambulances = []
+        for zip_code in self.env.postcode_dic[self.region_nr]:
+            if zip_code in self.env.bases[self.region_nr]:
                 isBase.append(1)
+                nr_ambulances.append(self.env.bases[self.region_nr][zip_code])
             else:
                 isBase.append(0)
-        return isBase
-    
-    def update_travel_time(self, env, region_nr, accident_loc):
+                nr_ambulances.append(0)
+        return isBase, nr_ambulances
+
+    def update_travel_time(self, accident_loc):
         """
         Takes the accident location and updates the travel_time list.
-        :param env:
-        :param region_nr:
-        :param accident_loc: zip code that send out ambulance
+        :param accident_loc: zip code that the ambulance is sent to
         """
-        for i, base in enumerate(env.postcode_dic[region_nr]):
-            self.travel_time[i] = env.distance_time(region_nr, int(base), accident_loc)  
+        for i, zip_code in enumerate(self.env.postcode_dic[self.region_nr]):
+            if zip_code in self.env.bases[self.region_nr]:
+                self.travel_time[i] = self.env.distance_time(self.region_nr, zip_code, accident_loc)
+            else:
+                self.travel_time[i] = 0
 
-
-    def process_action(self, action, total_travel_time, time, accident_loc):
+    def process_action(self, action, time, accident_location_list):
         """
         Takes an action (ambulance sent out) and returns the new state and reward.
         :param action: index of zip code that send out ambulance
         :param time: time of the day in seconds that ambulance was sent out
+        :param accident_loc: location of the accident to calculate when an amublance will arrive
         :return reward: minus time from ambulance to the accident
         """
         if self.nr_ambulances[action] < 1:
-            # raise ValueError("No ambulances available to send out.")
-            self.waiting_list.append(accident_loc)
+            # We need to add waiting list here
+            raise ValueError("No ambulances available to send out.")
         else:
             self.nr_ambulances[action] -= 1
-            self.ambulances_out.update({total_travel_time + time: action})
-        self.time[action] = time
+            total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action], self.get_accident_location(accident_location_list))
+            self.ambulance_return.update({total_travel_time + time: action})
+
         return self, -self.travel_time[action]
+
+    def update_state(self, time, accident_list):
+        self.bool_accident = accident_list
+
+        for i in range(len(self.N)):
+            self.time[i] = time
+
+        self.update_travel_time(self.get_accident_location(accident_list))
+
+    def get_accident_location(self, booleanList):
+        for i in booleanList:
+            if i == 1:
+                accident_index = i
+
+        return self.env.postcode_dic[self.region_nr][accident_index]
+
 
     def get_torch(self):
         """
