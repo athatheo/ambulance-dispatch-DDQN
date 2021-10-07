@@ -116,7 +116,7 @@ class QLearner(object):
 
     def select_action(self, state):
         if random.random() < self.epsilon:
-            action = random.randint(0, self.env.action_space - 1)
+            action = random.randint(0, MAX_NR_ZIPCODES)
         else:
             action = self.policy_net.act(state)
         return action

@@ -7,7 +7,7 @@ SECONDS = 60
 MINUTES = 60
 HOURS = 24
 NUM_EPISODES = 365
-
+MAX_NR_ZIPCODES = 456 # maximum number of zipcodes per region
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 
@@ -47,14 +47,14 @@ if RUN:
     env = Environment()
     env.import_data()
 
-    max_bases_index = max(env.bases, key=lambda x: env.bases[x])
-    max_nr_bases = len(env.bases[max_bases_index])
+    #max_bases_index = max(env.bases, key=lambda x: env.bases[x])
+    #max_nr_bases = len(env.bases[max_bases_index])
 
     # set up policy DQN
-    policy_net = QNet_MLP(env.state_k, max_nr_bases)
+    policy_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES)
 
     # set up target DQN
-    target_net = QNet_MLP(env.state_k, max_nr_bases)
+    target_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES)
     # set up Q learner (learning the network weights)
     ql = QLearner(env, policy_net, target_net, DEFAULT_DISCOUNT) # why do we need target_qn?
     act_loop(env, ql)
