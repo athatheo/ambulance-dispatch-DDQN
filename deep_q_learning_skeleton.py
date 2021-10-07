@@ -55,11 +55,13 @@ class QNet_MLP(nn.Module):
 
         ### MLP
         self.fc1 = nn.Linear(num_in, HIDDEN_NODES1)
-        self.fc2 = nn.Linear(HIDDEN_NODES1, num_out) #
+        self.fc2 = nn.Linear(HIDDEN_NODES1, num_out)
+        self.fc3 = nn.Linear(num_out, 1)
         #self.fc3 = nn.Linear(MAX_NR_ZIPCODES, num_a)  # this should be where masking is applied
 
         nn.init.xavier_uniform_(self.fc1.weight)
         nn.init.xavier_uniform_(self.fc2.weight)
+        nn.init.xavier_uniform_(self.fc3.weight)
 
     def forward(self, x):
         """ Defines forward pass through the network on input data x (assumes x to be a tensor) """
@@ -67,7 +69,7 @@ class QNet_MLP(nn.Module):
 
         x = F.ReLU(self.fc1(x))
         x = F.ReLU(self.fc2(x))
-        #x = self.fc3(x)
+        x = F.ReLU(self.fc3(x))
         return x
 
     def act(self, state):
@@ -120,6 +122,19 @@ class QLearner(object):
         else:
             action = self.policy_net.act(state)
         return action
+
+    def mask_function(self, dqn_output):
+        """
+        Masks all outputs that can not be considered as action because there is no base
+        :param dqn_output:
+        :return: index that are not masked
+        """
+
+        indexes = torch.Tensor([i for i in range(len(Task.Objects))
+                                if i not in state.Chosen and
+                                not (state.res_capacity - Task.Objects[i].Weight < 0)]).long()
+
+        return indexes
 
     def process_action(self, action, reward):
         #calculate reward
