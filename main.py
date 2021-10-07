@@ -1,14 +1,7 @@
-import Environment
+from Environment import Environment, State
+import Simulation as Sim
 
-def run():
-    env = Environment.Environment()
-    env.import_data()
-    sum = 0
-    for i in range(10000):
-        if env.sample_accidents(12).count(1)>0:
-            sum = sum + 1
+# env = Environment()
+# env.import_data()
 
-    print(sum)
-
-
-run()
+Sim.run_sim()
