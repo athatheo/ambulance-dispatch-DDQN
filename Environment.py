@@ -31,7 +31,7 @@ class Environment:
         :return: postcode_dict: dictionary with the region numbers as key and values corresponding to the postcodes per region
         """
 
-        for i in range(1, 25):
+        for i in range(1, 26):
             # skip nonexisting region number
             if i == 13:
                 continue
@@ -55,7 +55,7 @@ class Environment:
 
             self.postcode_dic.update({i: postcode_lst})
             self.pop_dic.update({i: pop_lst})
-
+        # print(self.postcode_dic)
         # number of registered accidents per region
         with open('Data/DataAllRegions.txt') as f:
             lines = f.readlines()
@@ -73,7 +73,10 @@ class Environment:
             res = re.split(',|;', line)
             temp = [re.findall(r'\d+', s) for s in res if re.findall(r'\d+', s) != []]
             reg_bases = {int(l[0]): int(l[1]) for l in temp}
-            self.bases.update({int(i + 1): reg_bases})
+            if i < 12:
+                self.bases.update({i + 1: reg_bases})
+            else:
+                self.bases.update({i + 2: reg_bases}) 
 
         # retrieve the postcode locations for each hospital
         # retrieve the postcode locations for each hospital
@@ -113,12 +116,16 @@ class Environment:
         """
 
         A = self.postcode_dic[region_nr].index(a)
+        # print('A', A)
         B = self.postcode_dic[region_nr].index(b)
+        # print('B', B)
 
         if region_nr < 13:
             i = region_nr - 1
         else:
             i = region_nr - 2
+
+        # print('coverage list', self.coverage_lst[i])
         return self.coverage_lst[i][B][A]
 
     def calculate_ttt(self, region_nr, ambulance_loc, accident_loc):
@@ -133,7 +140,7 @@ class Environment:
         hospital_loc = None
 
         for i, hospital in enumerate(self.hospitals[region_nr]):
-            dist_time = self.distance_time(accident_loc, hospital)
+            dist_time = self.distance_time(region_nr, accident_loc, hospital)
             if dist_time < min_dist_time:
                 min_dist_time = dist_time
                 hospital_loc = hospital
@@ -157,11 +164,12 @@ class Environment:
         bool_acc = []
         
         # sample boolean vector
-        if np.random.rand() <= accident_prob:
-            bool = 1
-        else:
-            bool = 0
-        bool_acc.append(bool)
+        for i in range(len(accident_prob)):
+            if np.random.rand() <= accident_prob[i]:
+                bool = 1
+            else:
+                bool = 0
+            bool_acc.append(bool)
 
         return bool_acc
 
@@ -177,6 +185,7 @@ class State:
         self.env = env
         self.K = 6
         self.N = len(env.postcode_dic[region_nr])
+        print(self.N)
         self.ambulance_return = {}  # Dictionary with key: when will an ambulance return and value: zip code of base
         self.region_nr = region_nr
         self.waiting_list = []
@@ -210,11 +219,14 @@ class State:
     def update_travel_time(self, accident_loc):
         """
         Takes the accident location and updates the travel_time list.
-        :param accident_loc: zip code that the ambulance is sent to
+        :param accident_loc: zip code of the accident location
         """
         for i, zip_code in enumerate(self.env.postcode_dic[self.region_nr]):
-            if zip_code in self.env.bases[self.region_nr]:
-                self.travel_time[i] = self.env.distance_time(self.region_nr, zip_code, accident_loc)
+            if zip_code in self.env.bases[self.region_nr].keys():
+                if self.nr_ambulances[i] > 0:
+                    self.travel_time[i] = self.env.distance_time(self.region_nr, zip_code, accident_loc)
+                else:
+                    self.travel_time[i] = 0
             else:
                 self.travel_time[i] = 0
 
@@ -226,27 +238,41 @@ class State:
         :param accident_loc: location of the accident to calculate when an amublance will arrive
         :return reward: minus time from ambulance to the accident
         """
-        if self.nr_ambulances[action] < 1:
+        if action == None:
             # We need to add waiting list here
-            raise ValueError("No ambulances available to send out.")
+            self.waiting_list.append({accident_location_list==1: time})
+            reward = 0
+            print('No ambulances available to send out.')
+            # raise ValueError("No ambulances available to send out.")
         else:
             self.nr_ambulances[action] -= 1
             total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action], self.get_accident_location(accident_location_list))
             self.ambulance_return.update({total_travel_time + time: action})
-
-        return self, -self.travel_time[action]
+            reward = -self.travel_time[action]
+        
+        return self, reward
 
     def update_state(self, time, accident_list):
+        """
+        Takes the current time and the accident list and updates the self.time and self.travel_time lists
+        :param time: current time (in seconds) that the accident happens 
+        :param accident_list: the boolean list with the accident location
+        """
         self.bool_accident = accident_list
 
-        for i in range(len(self.N)):
+        for i in range(self.N):
             self.time[i] = time
 
         self.update_travel_time(self.get_accident_location(accident_list))
 
     def get_accident_location(self, booleanList):
-        for i in booleanList:
-            if i == 1:
+        """
+        Takes the booleanList of accidents and returns the zip code of the accident location
+        :param booleanList: 
+        :return: zip code of the accident location
+        """
+        for i in range(len(booleanList)):
+            if booleanList[i] == 1:
                 accident_index = i
 
         return self.env.postcode_dic[self.region_nr][accident_index]
