@@ -116,16 +116,13 @@ class Environment:
         """
 
         A = self.postcode_dic[region_nr].index(a)
-        # print('A', A)
         B = self.postcode_dic[region_nr].index(b)
-        # print('B', B)
 
         if region_nr < 13:
             i = region_nr - 1
         else:
             i = region_nr - 2
 
-        # print('coverage list', self.coverage_lst[i])
         return self.coverage_lst[i][B][A]
 
     def calculate_ttt(self, region_nr, ambulance_loc, accident_loc):
@@ -185,7 +182,6 @@ class State:
         self.env = env
         self.K = 6
         self.N = len(env.postcode_dic[region_nr])
-        print(self.N)
         self.ambulance_return = {}  # Dictionary with key: when will an ambulance return and value: zip code of base
         self.region_nr = region_nr
         self.waiting_list = []
@@ -240,7 +236,7 @@ class State:
         """
         if action == None:
             # We need to add waiting list here
-            self.waiting_list.append({accident_location_list==1: time})
+            self.waiting_list.append({self.get_accident_location(accident_location_list): time})
             reward = 0
             print('No ambulances available to send out.')
             # raise ValueError("No ambulances available to send out.")
