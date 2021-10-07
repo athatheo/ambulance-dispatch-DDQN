@@ -8,16 +8,24 @@ MINUTES = 60
 HOURS = 24
 NUM_EPISODES = 365
 
-NUM_OF_REGIONS = 25
+NUM_OF_REGIONS = 24
+EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 
-def act_loop(env, agent, steps):
+def act_loop(env, agent):
     for _ in range(NUM_EPISODES):
-        for _ in range(steps):
-            for region in range(NUM_OF_REGIONS):  # Maybe this should be NUM_OF_REGIONS + 1 since they regions are 1,2,3...25 and not 0,1,2...24
-                state = State()
-                # Should each region have their own series of states? Since the action applied to a specific state won't have anything to do with other regions
-                # 1) sample state from environment
-                state.bool_accident = env.sample_accidents(region)
+        region_nr = np.random.randint(1, NUM_OF_REGIONS+1)
+        state = State(env, region_nr)
+        for second in range(EPISODE_LENGTH):
+
+            if state.ambulance_return[second]:
+                state.nr_ambulances[state.ambulance_return[second]] += 1
+                if len(state.waiting_list) > 0:
+                    state.nr_ambulances[state.ambulance_return[second]] -= 1
+
+            accident_location_list = env.sample_accidents(region_nr)
+
+            if didAccidentHappen(accident_location_list):
+                state.update_state(second, accident_location_list)
 
                 # 2) choose action
                 action = agent.select_action(state.get_torch())
@@ -27,22 +35,27 @@ def act_loop(env, agent, steps):
 
     return None
 
+
+def didAccidentHappen(booleanList):
+    if booleanList.count(1)>0:
+        return True
+    return False
+
+
 if RUN:
     # set up environment
     env = Environment()
     env.import_data()
 
-    num_a = env.action_space # max number of bases available in region
-    shape_o = env.state_k # number of parameters passed
+    max_bases_index = max(env.bases, key=lambda x: env.bases[x])
+    max_nr_bases = len(env.bases[max_bases_index])
 
     # set up policy DQN
-    policy_net = QNet_MLP(env.state_k)
+    policy_net = QNet_MLP(env.state_k, max_nr_bases)
+
     # set up target DQN
-    target_net = QNet_MLP(num_a, shape_o)
+    target_net = QNet_MLP(env.state_k, max_nr_bases)
     # set up Q learner (learning the network weights)
     ql = QLearner(env, policy_net, target_net, DEFAULT_DISCOUNT) # why do we need target_qn?
-
-    steps = SECONDS * MINUTES * HOURS
-
-    act_loop(env, ql, steps)
+    act_loop(env, ql)
 

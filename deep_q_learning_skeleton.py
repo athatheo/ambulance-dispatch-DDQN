@@ -26,7 +26,7 @@ RMSIZE = 10000
 ################ Define DQN (Deep Q Network) class ################
 
 class QNet_MLP(nn.Module):
-    def __init__(self, num_in, discount=DEFAULT_DISCOUNT, learning_rate=LEARNING_RATE):
+    def __init__(self, num_in, num_out, discount=DEFAULT_DISCOUNT, learning_rate=LEARNING_RATE):
         """ Constructor method. Set up NN
         :param act_space: number of actions possible (number of ambulances that can be dispatched
         :param obs_space: number of observation returned for state (number of accidents happening???)
@@ -37,14 +37,14 @@ class QNet_MLP(nn.Module):
         self.discount = discount
         self.learning_rate = learning_rate
 
-        self.init_network(num_in)
+        self.init_network(num_in, num_out)
         self.init_optimizer()
 
     def init_optimizer(self):
         self.loss_fn = torch.nn.MSELoss(reduction='sum')
         self.optimizer = torch.optim.RMSprop(self.parameters(), lr=self.learning_rate, alpha=0.9)
 
-    def init_network(self, num_in):
+    def init_network(self, num_in, num_out):
         """
         Initialization of NN with one 512 hidden layer and masking before output (not sure if this should be applied here)
         :param input: matrix recording where incidents happened and ambulances are available per zip code
@@ -55,7 +55,7 @@ class QNet_MLP(nn.Module):
 
         ### MLP
         self.fc1 = nn.Linear(num_in, HIDDEN_NODES1)
-        self.fc2 = nn.Linear(HIDDEN_NODES1, MAX_NR_ZIPCODES) #
+        self.fc2 = nn.Linear(HIDDEN_NODES1, num_out) #
         #self.fc3 = nn.Linear(MAX_NR_ZIPCODES, num_a)  # this should be where masking is applied
 
         nn.init.xavier_uniform_(self.fc1.weight)
