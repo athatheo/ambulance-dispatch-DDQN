@@ -25,6 +25,7 @@ EPS_DECAY = 200
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
+EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 
 def setup_sim():
     env = Environment()
@@ -35,50 +36,54 @@ def didAccidentHappen(booleanList):
         return True
     return False
 
-def get_accident_location(env, region_nr, booleanList):
-    for i in booleanList:
-        if i == 1:
-            accident_index = i
-    
-    return env.postcode_dic[region_nr][accident_index]
-
-def select_action(state, env, region_nr, accident_loc):
+def select_action(state):
     min_dist_time = 9999
     min_base = 0
-    nr_ambulances = state.nr_ambulances
     travel_time = state.travel_time
 
-    for i, base in enumerate(nr_ambulances):
+    for i, trav_time in enumerate(travel_time):
         # dist_time = env.distance_time(base, accident_loc)
-        if travel_time < min_dist_time:
-            min_dist_time = travel_time
-            min_base = base
+        if trav_time == 0:
+            continue
+        elif trav_time < min_dist_time:
+            min_dist_time = trav_time
+            min_base = i
 
     # availability[region_nr][min_base] -= 1
     # counter[region_nr][min_base] = env.calculate_ttt(min_base, accident_loc)
 
-    return nr_ambulances.index(min_base), env.calculate_ttt(min_base, accident_loc)
-    # return nr_ambulances.index(min_base), min_base
+    return min_base
+    # return nr_ambulances.index(min_base), min_base, env.calculate_ttt(min_base, accident_loc)
 
 def run_sim():
     env = Environment()
     env.import_data()
     
     for episode in range(NUM_OF_EPISODES):
-        region = random.choice(range(1, NUM_OF_REGIONS+1))
-        state = State(env, region)
+        region_nr = random.randint(1, NUM_OF_REGIONS+1)
+        state = State(env, region_nr)
+        tot_reward = 0
+        print('------------------')
+        print(episode)
+        for second in range(EPISODE_LENGTH):
+            
+            if state.ambulances_return[second]:
+                state.nr_ambulances[state.ambulances_return[second]] += 1 
+                # if len(state.waiting_list) > 0:
+                #     state.nr_ambulances[state.ambulances_return[second]] -= 1
+            
+            accident_location_list = env.sample_accidents(region_nr)
 
-        for second in range(HOURS*MINUTES*SECONDS):
-            if state.ambulances_out[second]:
-                state.nr_ambulances[state.ambulances_out[second]] += 1 
-                if len(state.waiting_list) > 0:
-                    state.nr_ambulances[state.ambulances_out[second]] -= 1
-            if didAccidentHappen(env.sample_accidents(region)):
-                accident_loc = get_accident_location(env, region, env.sample_accidents(region))
-                state.update_travel_time(env, region, accident_loc)
-                action, total_travel_time = select_action(state, env, region, accident_loc)
-                new_state, reward = state.process_action(action, total_travel_time, second, accident_loc)
+            if didAccidentHappen(accident_location_list):
+                state.update_state(second, accident_location_list)
+                action = select_action(state)
+                new_state, reward = state.process_action(action, second, accident_location_list)
             else:
                 new_state = state
                 reward = 0
+            tot_reward += reward
+            print(second)
+            print(reward, tot_reward, action)
+
+            state = new_state
 
