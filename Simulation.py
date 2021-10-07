@@ -36,41 +36,49 @@ def didAccidentHappen(booleanList):
         return True
     return False
 
+# def make_booleanList(n, index):
+#     lst = [0] * n
+#     lst[index] = 1
+#     print(lst)
+
+#     return lst
+
 def select_action(state):
     min_dist_time = 9999
-    min_base = 0
+    min_base = None
     travel_time = state.travel_time
 
     for i, trav_time in enumerate(travel_time):
-        # dist_time = env.distance_time(base, accident_loc)
         if trav_time == 0:
-            continue
+            pass
         elif trav_time < min_dist_time:
             min_dist_time = trav_time
             min_base = i
 
-    # availability[region_nr][min_base] -= 1
-    # counter[region_nr][min_base] = env.calculate_ttt(min_base, accident_loc)
-
     return min_base
-    # return nr_ambulances.index(min_base), min_base, env.calculate_ttt(min_base, accident_loc)
 
 def run_sim():
     env = Environment()
     env.import_data()
     
     for episode in range(NUM_OF_EPISODES):
-        region_nr = random.randint(1, NUM_OF_REGIONS+1)
+        region_nr = random.randint(1, 25)
+        if region_nr == 13:
+            continue
+        print('Epsiode: ', episode)
+        print('Region: ', region_nr)
         state = State(env, region_nr)
         tot_reward = 0
-        print('------------------')
-        print(episode)
+
         for second in range(EPISODE_LENGTH):
-            
-            if state.ambulances_return[second]:
-                state.nr_ambulances[state.ambulances_return[second]] += 1 
+            if second in state.ambulance_return.keys():
+                state.nr_ambulances[state.ambulance_return[second]] += 1 
                 # if len(state.waiting_list) > 0:
-                #     state.nr_ambulances[state.ambulances_return[second]] -= 1
+                #     for i, base in enumerate(state.waiting_list):
+                #         state.update_state(second, make_booleanList(state.N, i))
+                #         action = state.ambulance_return[second]
+                #         new_state, reward = state.process_action(action, state.waiting_list[base.keys()], make_booleanList(state.N, i))
+                #         state.nr_ambulances[state.ambulances_return[second]] -= 1
             
             accident_location_list = env.sample_accidents(region_nr)
 
@@ -81,9 +89,10 @@ def run_sim():
             else:
                 new_state = state
                 reward = 0
+            
             tot_reward += reward
-            print(second)
-            print(reward, tot_reward, action)
-
             state = new_state
+        
+        print('Total reward: ',  tot_reward)
+        print('------------------')
 
