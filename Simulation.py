@@ -1,12 +1,14 @@
+from io import IncrementalNewlineDecoder
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 import math
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torchvision.transforms as T
+# import torch
+# import torch.nn as nn
+# import torch.optim as optim
+# import torch.nn.functional as F
+# import torchvision.transforms as T
 
 from Environment import Environment, State
 
@@ -30,6 +32,9 @@ EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 def setup_sim():
     env = Environment()
     env.import_data()
+
+def make_plot(x, y):
+    plt.plot(x, y)
 
 def didAccidentHappen(booleanList):
     if booleanList.count(1)>0:
@@ -59,15 +64,17 @@ def select_action(state):
 def run_sim():
     env = Environment()
     env.import_data()
+    tot_reward = np.zeros((10, EPISODE_LENGTH))
     
-    for episode in range(NUM_OF_EPISODES):
-        region_nr = random.randint(1, NUM_OF_REGIONS)
+    for episode in range(10):
+    #     region_nr = random.randint(1, NUM_OF_REGIONS)
+    # for region_nr in range(1, NUM_OF_REGIONS+1):
+        region_nr = 14
         if region_nr == 13:
             continue
         print('Epsiode: ', episode)
         print('Region: ', region_nr)
         state = State(env, region_nr)
-        tot_reward = 0
 
         for second in range(EPISODE_LENGTH):
             if second in state.ambulance_return.keys():
@@ -78,7 +85,8 @@ def run_sim():
                     base = accident_waiting_list[0]
                     state.update_state(second, make_booleanList(state.N, state.ambulance_return[second]))
                     action = state.ambulance_return[second]                        
-                    new_state, reward = state.process_action(action, accident_waiting[base], make_booleanList(state.N, state.ambulance_return[second]))
+                    # new_state, reward = state.process_action(action, accident_waiting[base], make_booleanList(state.N, state.ambulance_return[second]))
+                    new_state, reward = state.process_action(action, second, make_booleanList(state.N, state.ambulance_return[second]))
                     state.nr_ambulances[state.ambulance_return[second]] -= 1
             
             accident_location_list = env.sample_accidents(region_nr)
@@ -91,12 +99,16 @@ def run_sim():
                 new_state = state
                 reward = 0
             
-            tot_reward += reward
+            if second == 0:
+                tot_reward[episode, second] = reward
+            else:
+                tot_reward[episode, second] = tot_reward[episode, second-1] + reward
             state = new_state
         
         if len(state.waiting_list) > 0:
-            tot_reward = -100_000
-
-        print('Total reward: ',  tot_reward)
+            tot_reward[episode, -1] = -100_000
+        print('Total reward: ',  tot_reward[episode, -1])
         print('------------------')
+    print('Average reward: ', np.mean(tot_reward[:,-1]))
 
+    plt.plot(np.arange(EPISODE_LENGTH), tot_reward[episode, :])
