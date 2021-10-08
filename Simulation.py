@@ -65,7 +65,8 @@ def run_sim():
     env = Environment()
     env.import_data()
     tot_reward = np.zeros((10, EPISODE_LENGTH))
-    
+    single_reward = np.zeros((10, EPISODE_LENGTH))
+
     for episode in range(10):
     #     region_nr = random.randint(1, NUM_OF_REGIONS)
     # for region_nr in range(1, NUM_OF_REGIONS+1):
@@ -101,8 +102,10 @@ def run_sim():
             
             if second == 0:
                 tot_reward[episode, second] = reward
+                single_reward[episode, second] = reward
             else:
                 tot_reward[episode, second] = tot_reward[episode, second-1] + reward
+                single_reward[episode, second] = reward
             state = new_state
         
         if len(state.waiting_list) > 0:
@@ -112,3 +115,13 @@ def run_sim():
     print('Average reward: ', np.mean(tot_reward[:,-1]))
 
     plt.plot(np.arange(EPISODE_LENGTH), tot_reward[episode, :])
+    plt.xlabel("Time in seconds")
+    plt.ylabel("Cumulative reward")
+    plt.savefig("greedy_totalReward")
+    plt.show()
+
+    plt.plot(np.arange(EPISODE_LENGTH), single_reward[episode, :])
+    plt.xlabel("Time in seconds")
+    plt.ylabel("Single reward")
+    plt.savefig("greedy_singleReward")
+    plt.show()
