@@ -116,12 +116,24 @@ class QLearner(object):
         self.stage = 0  # the time step, or 'stage' in this episode
         self.tot_stages = 0  # total time steps in lifetime
 
-    def select_action(self, state):
+    def action_greedy(self, qvals, state):
+        """Finds the index of zipcode with max qvalue
+        :return index of ambulance base"""
+
+        qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
+        qvals_selectable = torch.stack(qvals_selectable)
+        action = torch.argmax(qvals_selectable)
+        action_index = state.IndexesActionsNotMasked[action]
+
+        return action_index
+
+    def action_epsGreedy(self, qvals, state):
+        """select action according to epsilon greedy strategy: either random or best according to Qvalue"""
         if random.random() < self.epsilon:
-            action = random.randint(0, MAX_NR_ZIPCODES)
+            action_index = random.randint(0, MAX_NR_ZIPCODES)
         else:
-            action = self.policy_net.act(state)
-        return action
+            action_index = self.action_epsGreedy(qvals, state)
+        return action_index
 
     def mask_function(self, dqn_output):
         """
@@ -135,6 +147,12 @@ class QLearner(object):
                                 not (state.res_capacity - Task.Objects[i].Weight < 0)]).long()
 
         return indexes
+
+    def training_step(self, state):
+
+        self.policy_net.train()
+        qvals = self.policy_net(state)
+        return self.action_epsGreedy(qvals, state), qvals
 
     def process_action(self, action, reward):
         #calculate reward

@@ -185,6 +185,7 @@ class State:
         self.region_nr = region_nr
         self.waiting_list = []
 
+        # parameters initialized to pass to NN
         self.bool_accident = [0] * self.N
         # is_base: boolean list of whether an env.postcode_dic[region_nr][i] zip_code is a base
         # nr_ambulances: int list of how many ambulances are available per zip_code
@@ -192,6 +193,9 @@ class State:
         self.travel_time = [0] * self.N  # time from base to accident
         self.delta = env.prob_acc[region_nr]
         self.time = [0] * self.N
+
+        # index of bases (should not be masked)
+        self.indexNotMasked = [i for i, e in enumerate(self.is_base) if e == 1]
 
     def check_isBase(self):
         """
