@@ -1,6 +1,7 @@
 from deep_q_learning_skeleton import *
 from Environment import Environment
 from Environment import State
+import shelve
 # variable specifying to run training loop or not
 RUN = True
 SECONDS = 60
@@ -45,8 +46,9 @@ def didAccidentHappen(booleanList):
 if RUN:
     # set up environment
     env = Environment()
-    env.import_data()
-
+    environment_data = shelve.open('test.db')
+    env = environment_data['key']
+    environment_data.close()
     #max_bases_index = max(env.bases, key=lambda x: env.bases[x])
     #max_nr_bases = len(env.bases[max_bases_index])
 

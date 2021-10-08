@@ -3,7 +3,7 @@ import openpyxl
 import re
 import numpy as np
 import torch
-
+import shelve
 
 class Environment:
     """Environment class containing information about all ambulances, regions, zipcodes, populations and hospitals."""
@@ -107,6 +107,8 @@ class Environment:
 
             self.prob_acc.update({region_nr: accZip})
 
+        environment_data = shelve.open('test.db')
+        environment_data['key'] = self
 
     def distance_time(self, region_nr, a, b):
         """
