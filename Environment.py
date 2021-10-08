@@ -73,7 +73,10 @@ class Environment:
             res = re.split(',|;', line)
             temp = [re.findall(r'\d+', s) for s in res if re.findall(r'\d+', s) != []]
             reg_bases = {int(l[0]): int(l[1]) for l in temp}
-            self.bases.update({int(i + 1): reg_bases})
+            if i < 13:
+                self.bases.update({int(i + 1): reg_bases})
+            else:
+                self.bases.update({int(i + 2): reg_bases})
 
         # retrieve the postcode locations for each hospital
         # retrieve the postcode locations for each hospital
@@ -103,6 +106,7 @@ class Environment:
                 accZip.append(accidents * (float(pop_zipcode) / totPop))
 
             self.prob_acc.update({region_nr: accZip})
+
 
     def distance_time(self, region_nr, a, b):
         """
@@ -245,12 +249,10 @@ class State:
         self.update_travel_time(self.get_accident_location(accident_list))
 
     def get_accident_location(self, booleanList):
-        for i in booleanList:
-            if i == 1:
+        for i in range(len(booleanList)):
+            if booleanList[i] == 1:
                 accident_index = i
-
         return self.env.postcode_dic[self.region_nr][accident_index]
-
 
     def get_torch(self):
         """
