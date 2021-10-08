@@ -2,12 +2,12 @@ import Environment
 import shelve
 
 
-#env = Environment.Environment()
+env = Environment.Environment()
 #env.import_data()
 #print(env.nr_ambulances)
 #max_key = max(env.nr_ambulances, key= lambda x: env.nr_ambulances[x])
 #print(env.nr_ambulances[max_key])
-environment_data = shelve.open('test.db')
+environment_data = shelve.open('environment.db')
 env = environment_data['key']
 environment_data.close()
 

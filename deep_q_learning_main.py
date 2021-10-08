@@ -46,7 +46,7 @@ def didAccidentHappen(booleanList):
 if RUN:
     # set up environment
     env = Environment()
-    environment_data = shelve.open('test.db')
+    environment_data = shelve.open('environment.db')
     env = environment_data['key']
     environment_data.close()
     #max_bases_index = max(env.bases, key=lambda x: env.bases[x])
