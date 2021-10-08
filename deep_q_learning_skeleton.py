@@ -57,7 +57,6 @@ class QNet_MLP(nn.Module):
         self.fc1 = nn.Linear(num_in, HIDDEN_NODES1)
         self.fc2 = nn.Linear(HIDDEN_NODES1, num_out)
         self.fc3 = nn.Linear(num_out, 1)
-        #self.fc3 = nn.Linear(MAX_NR_ZIPCODES, num_a)  # this should be where masking is applied
 
         nn.init.xavier_uniform_(self.fc1.weight)
         nn.init.xavier_uniform_(self.fc2.weight)
@@ -136,6 +135,10 @@ class QLearner(object):
         return action_index
 
     def training_step(self, state):
+        """Trains the policy network and gets the qvalues depending on the state.
+        :return action (= index of ambulance to send out),
+                qvals (= list with qnet output)
+        """
 
         self.policy_net.train()
         qvals = self.policy_net(state)

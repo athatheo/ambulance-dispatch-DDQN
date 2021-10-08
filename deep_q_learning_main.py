@@ -17,8 +17,8 @@ def act_loop(env, agent):
         state = State(env, region_nr)
         for second in range(EPISODE_LENGTH):
 
-            if state.ambulance_return[second]:
-                state.nr_ambulances[state.ambulance_return[second]] += 1
+            if second in state.ambulance_return:
+                state.nr_ambulances[env.postcode_dic.index(state.ambulance_return[second])] += 1 # TODO: allow to add multiple
                 if len(state.waiting_list) > 0:
                     state.nr_ambulances[state.ambulance_return[second]] -= 1
 
