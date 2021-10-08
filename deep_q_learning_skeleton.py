@@ -130,23 +130,10 @@ class QLearner(object):
     def action_epsGreedy(self, qvals, state):
         """select action according to epsilon greedy strategy: either random or best according to Qvalue"""
         if random.random() < self.epsilon:
-            action_index = random.randint(0, MAX_NR_ZIPCODES)
+            action_index = random.choice(state.indexNotMasked)
         else:
             action_index = self.action_epsGreedy(qvals, state)
         return action_index
-
-    def mask_function(self, dqn_output):
-        """
-        Masks all outputs that can not be considered as action because there is no base
-        :param dqn_output:
-        :return: index that are not masked
-        """
-
-        indexes = torch.Tensor([i for i in range(len(Task.Objects))
-                                if i not in state.Chosen and
-                                not (state.res_capacity - Task.Objects[i].Weight < 0)]).long()
-
-        return indexes
 
     def training_step(self, state):
 
