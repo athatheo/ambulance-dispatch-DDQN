@@ -1,9 +1,8 @@
 import pandas as pd
-import openpyxl
 import re
 import numpy as np
-import torch
 import shelve
+
 
 class Environment:
     """Environment class containing information about all ambulances, regions, zipcodes, populations and hospitals."""
@@ -18,9 +17,9 @@ class Environment:
         self.hospitals = {}  # dictionary with region as keys and hospital postcodes as values
         self.nr_postcodes = {}  # records number of postcodes per region
         self.nr_ambulances = {}  # records number of ambulances per region
-        self.state_k = 6 # number of parameters passed saved per state
-        self.prob_acc = {} # list of dictionaries with probability of accident occuring for each region, per zip code
-        self.curr_state = [] # saves current state of environment; KxN matrix that we then pass to the environment
+        self.state_k = 6  # number of parameters passed saved per state
+        self.prob_acc = {}  # list of dictionaries with probability of accident occuring for each region, per zip code
+        self.curr_state = []  # saves current state of environment; KxN matrix that we then pass to the environment
 
         print("Initialisation complete")
 
@@ -107,7 +106,7 @@ class Environment:
 
             self.prob_acc.update({region_nr: accZip})
 
-        environment_data = shelve.open('environment.db')
+        environment_data = shelve.open('environment.txt')
         environment_data['key'] = self
 
     def distance_time(self, region_nr, a, b):
@@ -146,9 +145,11 @@ class Environment:
 
         initial_time = 1 * 60  # 1 min
         buffer_time = 15 * 60  # 15 mins
-        res = initial_time + self.distance_time(region_nr, ambulance_loc, accident_loc) + buffer_time + self.distance_time(region_nr,
-            accident_loc,
-            hospital_loc) + self.distance_time(region_nr,
+        res = initial_time + self.distance_time(region_nr, ambulance_loc,
+                                                accident_loc) + buffer_time + self.distance_time(region_nr,
+                                                                                                 accident_loc,
+                                                                                                 hospital_loc) + self.distance_time(
+            region_nr,
             hospital_loc, ambulance_loc)
 
         return res
@@ -161,113 +162,13 @@ class Environment:
         """
         accident_prob = self.prob_acc[region_nr]
         bool_acc = []
-        
+
         # sample boolean vector
-        if np.random.rand() <= accident_prob:
-            bool = 1
-        else:
-            bool = 0
-        bool_acc.append(bool)
+        for i in range(len(accident_prob)):
+            if np.random.rand() <= accident_prob[i]:
+                bool = 1
+            else:
+                bool = 0
+            bool_acc.append(bool)
 
         return bool_acc
-
-class State:
-
-    def __init__(self, env, region_nr):
-        """"
-        New state space at beginning of each episode.
-        Initializes a state for the given zipcode in the specified region.
-        All ambulances are initially available and no accidents have occured yet.
-        """
-        # Doesn't it initialize a state for the region and not the specific zipcode?
-        self.env = env
-        self.K = 6
-        self.N = len(env.postcode_dic[region_nr])
-        self.ambulance_return = {}  # Dictionary with key: when will an ambulance return and value: zip code of base
-        self.region_nr = region_nr
-        self.waiting_list = []
-
-        # parameters initialized to pass to NN
-        self.bool_accident = [0] * self.N
-        # is_base: boolean list of whether an env.postcode_dic[region_nr][i] zip_code is a base
-        # nr_ambulances: int list of how many ambulances are available per zip_code
-        self.is_base, self.nr_ambulances = self.check_isBase()
-        self.travel_time = [0] * self.N  # time from base to accident
-        self.delta = env.prob_acc[region_nr]
-        self.time = [0] * self.N
-
-        # index of bases (should not be masked)
-        self.indexNotMasked = [i for i, e in enumerate(self.is_base) if e == 1]
-
-    def check_isBase(self):
-        """
-        Find all bases in a region
-        :param env:
-        :param region_nr:
-        :return: boolean list indicating if zip-code has a base or not
-        """
-        isBase = []
-        nr_ambulances = []
-        for zip_code in self.env.postcode_dic[self.region_nr]:
-            if zip_code in self.env.bases[self.region_nr]:
-                isBase.append(1)
-                nr_ambulances.append(self.env.bases[self.region_nr][zip_code])
-            else:
-                isBase.append(0)
-                nr_ambulances.append(0)
-        return isBase, nr_ambulances
-
-    def update_travel_time(self, accident_loc):
-        """
-        Takes the accident location and updates the travel_time list.
-        :param accident_loc: zip code that the ambulance is sent to
-        """
-        for i, zip_code in enumerate(self.env.postcode_dic[self.region_nr]):
-            if zip_code in self.env.bases[self.region_nr]:
-                self.travel_time[i] = self.env.distance_time(self.region_nr, zip_code, accident_loc)
-            else:
-                self.travel_time[i] = 0
-
-    def process_action(self, action, time, accident_loc):
-        """
-        Takes an action (ambulance sent out) and returns the new state and reward.
-        :param action: index of zip code that send out ambulance
-        :param time: time of the day in seconds that ambulance was sent out
-        :param accident_loc: location of the accident to calculate when an amublance will arrive
-        :return reward: minus time from ambulance to the accident
-        """
-        if self.nr_ambulances[action] < 1:
-            # We need to add waiting list here
-            raise ValueError("No ambulances available to send out.")
-        else:
-            self.nr_ambulances[action] -= 1
-            total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action], accident_loc)
-            self.ambulance_return.update({total_travel_time + time: action})
-
-        return self, -self.travel_time[action]
-
-    def update_state(self, time, accident_list):
-        self.bool_accident = accident_list
-
-        for i in range(len(self.N)):
-            self.time[i] = time
-
-        self.update_travel_time(self.get_accident_location(accident_list))
-
-    def get_accident_location(self, booleanList):
-        for i in range(len(booleanList)):
-            if booleanList[i] == 1:
-                accident_index = i
-        return self.env.postcode_dic[self.region_nr][accident_index]
-
-    def get_torch(self):
-        """
-        Transform state object into a KxN torch, where K = number of parameters and N = number of zipcodes
-        :return:
-        """
-        return torch.tensor([self.bool_accident,
-                      self.nr_ambulances,
-                      self.is_base,
-                      self.travel_time,
-                      self.delta,
-                      self.time]).transpose(self.K, self.N)

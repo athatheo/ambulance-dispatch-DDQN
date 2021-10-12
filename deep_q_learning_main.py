@@ -1,19 +1,31 @@
-from deep_q_learning_skeleton import *
+import copy
+
+from QNet import QNet_MLP
+from Model import QModel
+import numpy as np
 from Environment import Environment
-from Environment import State
+from State import State
 import shelve
+from torch import device, cuda
+from Memory import ReplayMemory
+from Learner import Learner
+# if gpu is to be used
+device = device("cuda" if cuda.is_available() else "cpu")
 # variable specifying to run training loop or not
 RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
 NUM_EPISODES = 365
-MAX_NR_ZIPCODES = 456 # maximum number of zipcodes per region
+MAX_NR_ZIPCODES = 456  # maximum number of zipcodes per region
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
+DEFAULT_DISCOUNT = 0.99
+RMSIZE = 30
 
-def act_loop(env, agent):
-    for _ in range(NUM_EPISODES):
+def act_loop(env, agent, replay_memory):
+    learner = Learner(agent)
+    for episode in range(NUM_EPISODES):
         region_nr = np.random.randint(1, NUM_OF_REGIONS+1)
         state = State(env, region_nr)
         for second in range(EPISODE_LENGTH):
@@ -30,9 +42,19 @@ def act_loop(env, agent):
 
                 # 2) choose action
                 action = agent.select_action(state.get_torch())
+                current_state_copy = copy.deepcopy(state)
 
-                # 3) update action
-                agent.process_action(action)
+                next_state, reward = state.process_action(action, second)
+                next_state_copy = copy.deepcopy(next_state)
+
+                # Store the transition in memory
+                replay_memory.push(current_state_copy, action, next_state_copy, reward)
+                learner.optimize_model(replay_memory)
+
+        if episode % 10 == 0:
+            agent.update_nets()
+
+    print('Complete')
 
     return None
 
@@ -45,7 +67,6 @@ def didAccidentHappen(booleanList):
 
 if RUN:
     # set up environment
-    env = Environment()
     environment_data = shelve.open('environment.db')
     env = environment_data['key']
     environment_data.close()
@@ -58,6 +79,8 @@ if RUN:
     # set up target DQN
     target_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES)
     # set up Q learner (learning the network weights)
-    ql = QLearner(env, policy_net, target_net, DEFAULT_DISCOUNT) # why do we need target_qn?
-    act_loop(env, ql)
+    ql = QModel(env, policy_net, target_net, DEFAULT_DISCOUNT) # why do we need target_qn?
+    replay_memory = ReplayMemory(RMSIZE)
+
+    act_loop(env, ql, replay_memory)
 
