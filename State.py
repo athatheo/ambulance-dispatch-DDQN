@@ -83,7 +83,7 @@ class State(object):
         return self, -self.travel_time[action]
 
     def update_state(self, time, accident_list):
-        self.bool_accident = accident_list
+        self.bool_accident = accident_list.copy()
 
         for i in range(self.N):
             self.time[i] = time

@@ -27,4 +27,5 @@ x = torch.tensor([state.bool_accident,
                              state.time])
 print(x.shape)
 print(state.K, state.N)
-print("Ambulances left: ", sum(state.nr_ambulances))
+print("Ambulances left: ", state.nr_ambulances)
+print(env.nr_ambulances)

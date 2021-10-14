@@ -167,6 +167,10 @@ class Environment:
         for i in range(len(accident_prob)):
             if np.random.rand() <= accident_prob[i]:
                 bool = 1
+                # won't have any other accidents happening
+                for j in range(i+1, len(accident_prob)):
+                    bool_acc.append(0)
+                return bool_acc
             else:
                 bool = 0
             bool_acc.append(bool)

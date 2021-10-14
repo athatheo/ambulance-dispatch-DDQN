@@ -26,7 +26,7 @@ RMSIZE = 30
 def act_loop(env, agent, replay_memory):
     learner = Learner(agent)
     for episode in range(NUM_EPISODES):
-        region_nr = np.random.randint(1, NUM_OF_REGIONS+1)
+        region_nr = 20 #np.random.randint(1, NUM_OF_REGIONS+1)
         state = State(env, region_nr)
 
         print("Episode: ", episode+1)
@@ -42,7 +42,7 @@ def act_loop(env, agent, replay_memory):
             accident_location_list = env.sample_accidents(region_nr)
             if didAccidentHappen(accident_location_list):
                 #print("Second: ", second + 1)
-                #print("Ambulances left: ", sum(state.nr_ambulances))
+                #print("Ambulances left: ", state.nr_ambulances)
 
                 state.update_state(second, accident_location_list)
 
@@ -89,4 +89,3 @@ if RUN:
     replay_memory = ReplayMemory(RMSIZE)
 
     act_loop(env, ql, replay_memory)
-
