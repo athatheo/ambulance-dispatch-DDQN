@@ -4,7 +4,9 @@ import torch.nn.functional as F
 import debug_utils
 import torch.optim as optim
 import torch
-
+from torch import device, cuda
+# if gpu is to be used
+device = device("cuda" if cuda.is_available() else "cpu")
 ################ Define model parameters ################
 
 MAX_NR_ZIPCODES = 456  # maximum number of zipcodes per region
@@ -63,7 +65,10 @@ class QNet_MLP(nn.Module):
 
     def forward(self, x):
         """ Defines forward pass through the network on input data x (assumes x to be a tensor) """
-        debug_utils.assert_isinstance(x, torch.Tensor)
+        x = x.to(device)
+
+        if not isinstance(x, torch.Tensor):
+            raise ValueError("Input not a Tensor")
 
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))

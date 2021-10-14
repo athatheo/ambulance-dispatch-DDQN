@@ -124,6 +124,7 @@ class Environment:
             i = region_nr - 1
         else:
             i = region_nr - 2
+
         return self.coverage_lst[i][B][A]
 
     def calculate_ttt(self, region_nr, ambulance_loc, accident_loc):
@@ -138,21 +139,20 @@ class Environment:
         hospital_loc = None
 
         for i, hospital in enumerate(self.hospitals[region_nr]):
-            dist_time = self.distance_time(accident_loc, hospital)
+            dist_time = self.distance_time(region_nr, accident_loc, hospital)
             if dist_time < min_dist_time:
                 min_dist_time = dist_time
                 hospital_loc = hospital
 
         initial_time = 1 * 60  # 1 min
         buffer_time = 15 * 60  # 15 mins
-        res = initial_time + self.distance_time(region_nr, ambulance_loc,
-                                                accident_loc) + buffer_time + self.distance_time(region_nr,
-                                                                                                 accident_loc,
-                                                                                                 hospital_loc) + self.distance_time(
-            region_nr,
+        res = initial_time + self.distance_time(region_nr, ambulance_loc, accident_loc) + buffer_time + self.distance_time(region_nr,
+            accident_loc,
+            hospital_loc) + self.distance_time(region_nr,
             hospital_loc, ambulance_loc)
 
         return res
+
 
     def sample_accidents(self, region_nr):
         """

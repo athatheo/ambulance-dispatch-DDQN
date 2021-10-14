@@ -46,11 +46,11 @@ class QModel(object):
         :return index of ambulance base"""
 
         self.policy_net.train()
-        qvals = self.policy_net(state)
+        qvals = self.policy_net(state.get_torch())
         qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
         qvals_selectable = torch.stack(qvals_selectable)
         action = torch.argmax(qvals_selectable)
-        action_index = state.IndexesActionsNotMasked[action]
+        action_index = state.indexNotMasked[action]
 
         return action_index
 

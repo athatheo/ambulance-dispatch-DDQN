@@ -28,32 +28,38 @@ def act_loop(env, agent, replay_memory):
     for episode in range(NUM_EPISODES):
         region_nr = np.random.randint(1, NUM_OF_REGIONS+1)
         state = State(env, region_nr)
+
+        print("Episode: ", episode+1)
+        print("Region: ", region_nr)
+
         for second in range(EPISODE_LENGTH):
 
             if second in state.ambulance_return:
-                state.nr_ambulances[env.postcode_dic.index(state.ambulance_return[second])] += 1 # TODO: allow to add multiple
+                state.nr_ambulances[state.ambulance_return[second]] += 1
                 if len(state.waiting_list) > 0:
                     state.nr_ambulances[state.ambulance_return[second]] -= 1
 
             accident_location_list = env.sample_accidents(region_nr)
-
             if didAccidentHappen(accident_location_list):
+                #print("Second: ", second + 1)
+                #print("Ambulances left: ", sum(state.nr_ambulances))
+
                 state.update_state(second, accident_location_list)
 
                 # 2) choose action
-                action = agent.select_action(state.get_torch())
+                action = agent.select_action(state)
                 current_state_copy = copy.deepcopy(state)
 
                 next_state, reward = state.process_action(action, second)
                 next_state_copy = copy.deepcopy(next_state)
-
+                agent.cum_r += reward
                 # Store the transition in memory
                 replay_memory.push(current_state_copy, action, next_state_copy, reward)
                 learner.optimize_model(replay_memory)
 
         if episode % 10 == 0:
             agent.update_nets()
-
+        print("Reward: ", agent.cum_r)
     print('Complete')
 
     return None
@@ -74,10 +80,10 @@ if RUN:
     #max_nr_bases = len(env.bases[max_bases_index])
 
     # set up policy DQN
-    policy_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES)
+    policy_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES).to(device)
 
     # set up target DQN
-    target_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES)
+    target_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES).to(device)
     # set up Q learner (learning the network weights)
     ql = QModel(env, policy_net, target_net, DEFAULT_DISCOUNT) # why do we need target_qn?
     replay_memory = ReplayMemory(RMSIZE)

@@ -1,5 +1,8 @@
 import torch
 import Environment
+from torch import device, cuda
+
+device = device("cuda" if cuda.is_available() else "cpu")
 
 
 class State(object):
@@ -67,7 +70,7 @@ class State(object):
         :param accident_loc: location of the accident to calculate when an amublance will arrive
         :return reward: minus time from ambulance to the accident
         """
-        if self.nr_ambulances[action] < 1:
+        if action == None:
             # We need to add waiting list here
             raise ValueError("No ambulances available to send out.")
         else:
@@ -99,9 +102,10 @@ class State(object):
         Transform state object into a KxN torch, where K = number of parameters and N = number of zipcodes
         :return:
         """
-        return torch.tensor([self.bool_accident,
-                             self.nr_ambulances,
-                             self.is_base,
-                             self.travel_time,
-                             self.delta,
-                             self.time]).transpose(self.K, self.N)
+
+        return torch.transpose(torch.tensor([self.bool_accident,
+                                             self.nr_ambulances,
+                                             self.is_base,
+                                             self.travel_time,
+                                             self.delta,
+                                             self.time], device=device), 0, 1)
