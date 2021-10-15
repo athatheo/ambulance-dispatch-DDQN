@@ -70,9 +70,9 @@ class State(object):
         :param accident_loc: location of the accident to calculate when an amublance will arrive
         :return reward: minus time from ambulance to the accident
         """
-        if action == None:
-            # We need to add waiting list here
-            raise ValueError("No ambulances available to send out.")
+        if self.nr_ambulances[action] < 1:
+            # Send the closest ambulance in a greedy or if thats not possible, add in the waiting list
+            return self, -100000
         else:
             accident_loc = self.get_accident_location()
             self.nr_ambulances[action] -= 1
@@ -94,8 +94,8 @@ class State(object):
 
         for i in range(len(self.bool_accident)):
             if self.bool_accident[i] == 1:
-                accident_index = i
-        return self.env.postcode_dic[self.region_nr][accident_index]
+                return self.env.postcode_dic[self.region_nr][i]
+
 
     def get_torch(self):
         """

@@ -166,7 +166,7 @@ class Environment:
         # sample boolean vector
         for i in range(len(accident_prob)):
             if np.random.rand() <= accident_prob[i]:
-                bool = 1
+                bool_acc.append(1)
                 # won't have any other accidents happening
                 for j in range(i+1, len(accident_prob)):
                     bool_acc.append(0)

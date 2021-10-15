@@ -24,19 +24,27 @@ DEFAULT_DISCOUNT = 0.99
 RMSIZE = 30
 
 def act_loop(env, agent, replay_memory):
-    learner = Learner(agent)
     for episode in range(NUM_EPISODES):
-        region_nr = 20 #np.random.randint(1, NUM_OF_REGIONS+1)
+        region_nr = np.random.randint(1, NUM_OF_REGIONS+1)
+        if region_nr == 13 or region_nr == 14:
+            continue
         state = State(env, region_nr)
+        learner = Learner(agent)
+        replay_memory = ReplayMemory(RMSIZE)
 
         print("Episode: ", episode+1)
         print("Region: ", region_nr)
-
+        agent.cum_r = 0
+        agent.stage = 0
         for second in range(EPISODE_LENGTH):
 
             if second in state.ambulance_return:
                 state.nr_ambulances[state.ambulance_return[second]] += 1
                 if len(state.waiting_list) > 0:
+                    # process action
+                    # pop from waiting list
+                    # maybe sth with reward
+                    # maybe new action/state and reward
                     state.nr_ambulances[state.ambulance_return[second]] -= 1
 
             accident_location_list = env.sample_accidents(region_nr)
@@ -52,7 +60,11 @@ def act_loop(env, agent, replay_memory):
 
                 next_state, reward = state.process_action(action, second)
                 next_state_copy = copy.deepcopy(next_state)
+
                 agent.cum_r += reward
+                agent.tot_r += reward
+                agent.stage = second
+                agent.tot_stages += 1
                 # Store the transition in memory
                 replay_memory.push(current_state_copy, action, next_state_copy, reward)
                 learner.optimize_model(replay_memory)
@@ -60,6 +72,7 @@ def act_loop(env, agent, replay_memory):
         if episode % 10 == 0:
             agent.update_nets()
         print("Reward: ", agent.cum_r)
+        print("---------------------------")
     print('Complete')
 
     return None
