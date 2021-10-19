@@ -1,7 +1,7 @@
 import torch
 import Environment
 from torch import device, cuda
-
+import numpy as np
 device = device("cuda" if cuda.is_available() else "cpu")
 
 
@@ -32,7 +32,7 @@ class State(object):
         self.time = [0] * self.N
 
         # index of bases (should not be masked)
-        self.indexNotMasked = [i for i, e in enumerate(self.is_base) if e == 1]
+        self.indexNotMasked = np.array([i for i, e in enumerate(self.is_base) if e == 1])
 
     def check_isBase(self):
         """
@@ -71,12 +71,14 @@ class State(object):
         :param accident_loc: location of the accident to calculate when an amublance will arrive
         :return reward: minus time from ambulance to the accident
         """
-        if self.nr_ambulances[action] < 1:
+        if action == -1:
             # Send the closest ambulance in a greedy or if thats not possible, add in the waiting list
             return self, -100000
         else:
             accident_loc = self.get_accident_location()
             self.nr_ambulances[action] -= 1
+            if self.nr_ambulances[action] == 0:
+                self.indexNotMasked = self.indexNotMasked[self.indexNotMasked != action]
             total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action],
                                                        accident_loc)
             self.ambulance_return.update({total_travel_time + time: action})

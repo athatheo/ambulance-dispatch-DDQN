@@ -1,5 +1,5 @@
 import copy
-import yappi
+import matplotlib
 from QNet import QNet_MLP
 from Model import QModel
 import numpy as np
@@ -16,12 +16,14 @@ RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 365
+NUM_EPISODES = 1000
 MAX_NR_ZIPCODES = 456  # maximum number of zipcodes per region
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 DEFAULT_DISCOUNT = 0.99
 RMSIZE = 30
+
+rewards_list = [[0] for i in range(25)]
 
 def act_loop(env, agent, replay_memory):
     for episode in range(NUM_EPISODES):
@@ -36,10 +38,13 @@ def act_loop(env, agent, replay_memory):
         print("Region: ", region_nr)
         agent.cum_r = 0
         agent.stage = 0
+        #print("Initial ambulances: ", state.nr_ambulances)
         for second in range(EPISODE_LENGTH):
 
             if second in state.ambulance_return:
                 state.nr_ambulances[state.ambulance_return[second]] += 1
+                if state.ambulance_return[second] and not(state.ambulance_return[second] in state.indexNotMasked):
+                    state.indexNotMasked = np.append(state.indexNotMasked, state.ambulance_return[second])
                 if len(state.waiting_list) > 0:
                     # process action
                     # pop from waiting list
@@ -73,8 +78,11 @@ def act_loop(env, agent, replay_memory):
             agent.update_nets()
         print("Reward: ", agent.cum_r)
         print("---------------------------")
+        rewards_list[region_nr].append(agent.cum_r)
     print('Complete')
-
+    model_data = shelve.open('model.txt')
+    model_data['model'] = agent
+    model_data['rewards'] = rewards_list
     return None
 
 

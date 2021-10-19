@@ -16,7 +16,7 @@ NUM_EPISODES = 500
 DEFAULT_DISCOUNT = 0.99
 
 # Learning reate for NN
-LEARNING_RATE = 0.0001  # QNET
+LEARNING_RATE = 0.01  # QNET
 # Save results
 RESULTS_NAME = 'ddqn'
 # Replay memory size
@@ -56,8 +56,8 @@ class QNet_MLP(nn.Module):
 
         ### MLP
         self.fc1 = nn.Linear(num_in, HIDDEN_NODES1)
-        self.fc2 = nn.Linear(HIDDEN_NODES1, num_out)
-        self.fc3 = nn.Linear(num_out, 1)
+        self.fc2 = nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1)
+        self.fc3 = nn.Linear(HIDDEN_NODES1, 1)
 
         nn.init.xavier_uniform_(self.fc1.weight)
         nn.init.xavier_uniform_(self.fc2.weight)

@@ -48,6 +48,8 @@ class QModel(object):
         self.policy_net.train()
         qvals = self.policy_net(state.get_torch())
         qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
+        if len(qvals_selectable) == 0:
+            return -1
         qvals_selectable = torch.stack(qvals_selectable)
         action = torch.argmax(qvals_selectable)
         action_index = state.indexNotMasked[action]
@@ -57,6 +59,8 @@ class QModel(object):
     def select_action(self, state):
         """Selects action according to epsilon greedy strategy: either random or best according to Qvalue"""
         if random.random() < self.epsilon:
+            if len(state.indexNotMasked) == 0:
+                return -1
             return random.choice(state.indexNotMasked)
         else:
             return self.get_max_q(state)
