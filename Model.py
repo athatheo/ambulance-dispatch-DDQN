@@ -3,7 +3,9 @@ import random
 import torch
 
 # Exploration rate (epsilon) is probability of choosing a random action
-EPSILON = 0.05
+EPSILON_MAX = 1.00
+EPSILON_MIN = 0.05
+EPSILON_DECAY = 0.95
 
 # discount rate of future rewards
 DEFAULT_DISCOUNT = 0.99
@@ -26,9 +28,10 @@ class QModel(object):
         #self.rm = ReplayMemory(rm_size)  # replay memory stores (a subset of) experience across episode
         self.discount = discount
 
-        self.epsilon = EPSILON
-        self.epsilon_min = .01
-        self.epsilon_decay = .98
+        self.epsilon = EPSILON_MAX
+        self.epsilon_max = EPSILON_MAX
+        self.epsilon_min = EPSILON_MIN
+        self.epsilon_decay = EPSILON_DECAY
 
         #self.batch_size = BATCH_SIZE
         self.target_net = target_net
@@ -54,8 +57,12 @@ class QModel(object):
 
         return action_index
 
+    def decrement_epsilon(self):
+        return self.epsilon * self.epsilon_decay if self.epsilon > self.epsilon_min else self.epsilon_min
+    
     def select_action(self, state):
         """Selects action according to epsilon greedy strategy: either random or best according to Qvalue"""
+        self.epsilon = self.decrement_epsilon()
         if random.random() < self.epsilon:
             return random.choice(state.indexNotMasked)
         else:
