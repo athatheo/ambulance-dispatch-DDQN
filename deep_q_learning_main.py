@@ -16,12 +16,15 @@ RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 1000
+NUM_EPISODES = 50000
 MAX_NR_ZIPCODES = 456  # maximum number of zipcodes per region
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 DEFAULT_DISCOUNT = 0.99
 RMSIZE = 30
+
+EPSILON_MIN = 0.05
+EPSILON_MAX_DECAY = 0.99
 
 rewards_list = [[0] for i in range(25)]
 
@@ -36,6 +39,8 @@ def act_loop(env, agent, replay_memory):
 
         print("Episode: ", episode+1)
         print("Region: ", region_nr)
+        if agent.epsilon_max > EPSILON_MIN:
+            agent.epsilon_max *= EPSILON_MAX_DECAY
         agent.epsilon = agent.epsilon_max
         agent.cum_r = 0
         agent.stage = 0
@@ -60,7 +65,6 @@ def act_loop(env, agent, replay_memory):
 
                 state.update_state(second, zip_code_index)
 
-                # 2) choose action
                 action = agent.select_action(state)
                 current_state_copy = copy.deepcopy(state)
 
@@ -71,7 +75,8 @@ def act_loop(env, agent, replay_memory):
                 agent.tot_r += reward
                 agent.stage = second
                 agent.tot_stages += 1
-                # Store the transition in memory
+                agent.episode = episode
+
                 replay_memory.push(current_state_copy, action, next_state_copy, reward)
                 learner.optimize_model(replay_memory)
 

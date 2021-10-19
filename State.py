@@ -73,7 +73,7 @@ class State(object):
         """
         if action == -1:
             # Send the closest ambulance in a greedy or if thats not possible, add in the waiting list
-            return self, -100000
+            return self, -20000
         else:
             accident_loc = self.get_accident_location()
             self.nr_ambulances[action] -= 1
