@@ -3,6 +3,8 @@ import re
 import numpy as np
 import shelve
 
+randomizer = np.random.default_rng()
+
 
 class Environment:
     """Environment class containing information about all ambulances, regions, zipcodes, populations and hospitals."""
@@ -20,7 +22,7 @@ class Environment:
         self.state_k = 6  # number of parameters passed saved per state
         self.prob_acc = {}  # list of dictionaries with probability of accident occuring for each region, per zip code
         self.curr_state = []  # saves current state of environment; KxN matrix that we then pass to the environment
-
+        self.max_prob_acc = {} # saves maximum probability per region
         print("Initialisation complete")
 
     def import_data(self):
@@ -105,6 +107,7 @@ class Environment:
                 accZip.append(accidents * (float(pop_zipcode) / totPop))
 
             self.prob_acc.update({region_nr: accZip})
+            self.max_prob_acc.update({region_nr: max(self.prob_acc[region_nr])})
 
         environment_data = shelve.open('environment.txt')
         environment_data['key'] = self
@@ -158,21 +161,17 @@ class Environment:
         """
         sample accidents uniformly over time
         :param: region number for region of interest
-        :return: list of booleans indicating if accident happened or not per zipcode
+        :return: index indicating the zip code of the accident if one happens, None otherwise
         """
         accident_prob = self.prob_acc[region_nr]
-        bool_acc = []
+        random_values = randomizer.random(len(accident_prob))
+        if min(random_values) > self.max_prob_acc[region_nr]:
+            return None
+        return self.find(random_values, accident_prob)
 
-        # sample boolean vector
-        for i in range(len(accident_prob)):
-            if np.random.rand() <= accident_prob[i]:
-                bool_acc.append(1)
-                # won't have any other accidents happening
-                for j in range(i+1, len(accident_prob)):
-                    bool_acc.append(0)
-                return bool_acc
-            else:
-                bool = 0
-            bool_acc.append(bool)
+    def find(self, random_values, accident_prob):
+        for zip_code_index in range(len(accident_prob)):
+            if random_values[zip_code_index] <= accident_prob[zip_code_index]:
+                return zip_code_index
 
-        return bool_acc
+        return None

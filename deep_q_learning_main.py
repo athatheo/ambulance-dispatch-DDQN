@@ -1,5 +1,5 @@
 import copy
-
+import yappi
 from QNet import QNet_MLP
 from Model import QModel
 import numpy as np
@@ -47,12 +47,12 @@ def act_loop(env, agent, replay_memory):
                     # maybe new action/state and reward
                     state.nr_ambulances[state.ambulance_return[second]] -= 1
 
-            accident_location_list = env.sample_accidents(region_nr)
-            if didAccidentHappen(accident_location_list):
+            zip_code_index = env.sample_accidents(region_nr)
+            if zip_code_index:
                 #print("Second: ", second + 1)
                 #print("Ambulances left: ", state.nr_ambulances)
 
-                state.update_state(second, accident_location_list)
+                state.update_state(second, zip_code_index)
 
                 # 2) choose action
                 action = agent.select_action(state)
@@ -86,7 +86,7 @@ def didAccidentHappen(booleanList):
 
 if RUN:
     # set up environment
-    environment_data = shelve.open('environment.db')
+    environment_data = shelve.open('environment.txt')
     env = environment_data['key']
     environment_data.close()
     #max_bases_index = max(env.bases, key=lambda x: env.bases[x])

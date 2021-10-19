@@ -20,6 +20,7 @@ class State(object):
         self.ambulance_return = {}  # Dictionary with key: when will an ambulance return and value: zip code of base
         self.region_nr = region_nr
         self.waiting_list = []
+        self.accident_location_index = -1
 
         # parameters initialized to pass to NN
         self.bool_accident = [0] * self.N
@@ -82,19 +83,18 @@ class State(object):
 
         return self, -self.travel_time[action]
 
-    def update_state(self, time, accident_list):
-        self.bool_accident = accident_list.copy()
-
+    def update_state(self, time, zip_code_index):
+        if self.accident_location_index != -1:
+            self.bool_accident[self.accident_location_index] = 0
+        self.bool_accident[zip_code_index] = 1
+        self.accident_location_index = zip_code_index
         for i in range(self.N):
             self.time[i] = time
 
         self.update_travel_time(self.get_accident_location())
 
     def get_accident_location(self):
-
-        for i in range(len(self.bool_accident)):
-            if self.bool_accident[i] == 1:
-                return self.env.postcode_dic[self.region_nr][i]
+        return self.env.postcode_dic[self.region_nr][self.accident_location_index]
 
 
     def get_torch(self):
@@ -109,3 +109,22 @@ class State(object):
                                              self.travel_time,
                                              self.delta,
                                              self.time], device=device), 0, 1)
+
+    def __deepcopy__(self, memodict={}):
+        copy_object = State(self.env, self.region_nr)
+
+        copy_object.ambulance_return = self.ambulance_return.copy()
+        copy_object.waiting_list = self.waiting_list.copy()
+
+        # parameters initialized to pass to NN
+        copy_object.bool_accident = self.bool_accident.copy()
+        # is_base: boolean list of whether an env.postcode_dic[region_nr][i] zip_code is a base
+        # nr_ambulances: int list of how many ambulances are available per zip_code
+        copy_object.is_base, copy_object.nr_ambulances = self.is_base.copy(), self.nr_ambulances.copy()
+        copy_object.travel_time = self.travel_time.copy()
+        copy_object.delta = self.delta.copy()
+        copy_object.time = self.time.copy()
+
+        # index of bases (should not be masked)
+        copy_object.indexNotMasked = self.indexNotMasked.copy()
+        return copy_object
