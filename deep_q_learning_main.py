@@ -36,6 +36,7 @@ def act_loop(env, agent, replay_memory):
 
         print("Episode: ", episode+1)
         print("Region: ", region_nr)
+        agent.epsilon = agent.epsilon_max
         agent.cum_r = 0
         agent.stage = 0
         #print("Initial ambulances: ", state.nr_ambulances)
