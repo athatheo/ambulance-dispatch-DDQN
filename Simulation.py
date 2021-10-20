@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import math
+import shelve
 
 # import torch
 # import torch.nn as nn
@@ -13,7 +14,7 @@ import math
 from Environment import Environment, State
 
 NUM_OF_REGIONS = 25
-NUM_OF_EPISODES = 100
+NUM_OF_EPISODES = 1000
 GAMMA = 1.00
 EPS_START = 0.9
 EPS_END = 0.05
@@ -62,18 +63,19 @@ def select_action(state):
     return min_base
 
 def run_sim():
-    env = Environment()
-    env.import_data()
-    tot_reward = np.zeros((10, EPISODE_LENGTH))
-    single_reward = np.zeros((10, EPISODE_LENGTH))
+    environment_data = shelve.open('environment.txt')
+    env = environment_data['key']
+    environment_data.close()
+    tot_reward = np.zeros((NUM_OF_EPISODES, EPISODE_LENGTH))
+    single_reward = np.zeros((NUM_OF_EPISODES, EPISODE_LENGTH))
 
-    for episode in range(10):
+    for episode in range(NUM_OF_EPISODES):
     #     region_nr = random.randint(1, NUM_OF_REGIONS)
     # for region_nr in range(1, NUM_OF_REGIONS+1):
-        region_nr = 14
+        region_nr = 22
         if region_nr == 13:
             continue
-        print('Epsiode: ', episode)
+        print('Epsiode: ', episode+1)
         print('Region: ', region_nr)
         state = State(env, region_nr)
 
@@ -109,19 +111,27 @@ def run_sim():
             state = new_state
         
         if len(state.waiting_list) > 0:
-            tot_reward[episode, -1] = -100_000
+            # tot_reward[episode, -1] = -100_000
+            print('Waiting list is not empty')
         print('Total reward: ',  tot_reward[episode, -1])
         print('------------------')
     print('Average reward: ', np.mean(tot_reward[:,-1]))
 
-    plt.plot(np.arange(EPISODE_LENGTH), tot_reward[episode, :])
-    plt.xlabel("Time in seconds")
-    plt.ylabel("Cumulative reward")
-    plt.savefig("greedy_totalReward")
-    plt.show()
+    # plt.plot(np.arange(EPISODE_LENGTH), tot_reward[episode, :])
+    # plt.xlabel("Time in seconds")
+    # plt.ylabel("Cumulative reward")
+    # plt.savefig("greedy_totalReward")
+    # plt.show()
 
-    plt.plot(np.arange(EPISODE_LENGTH), single_reward[episode, :])
-    plt.xlabel("Time in seconds")
-    plt.ylabel("Single reward")
-    plt.savefig("greedy_singleReward")
+    # plt.plot(np.arange(EPISODE_LENGTH), single_reward[episode, :])
+    # plt.xlabel("Time in seconds")
+    # plt.ylabel("Single reward")
+    # plt.savefig("greedy_singleReward")
+    # plt.show()
+
+    plt.plot(np.arange(NUM_OF_EPISODES)+1, tot_reward[:, -1])
+    plt.xlabel("Episode")
+    plt.ylabel("Total reward")
+    plt.title("Total reward per episode")
+    plt.savefig("greedy_totReward")
     plt.show()

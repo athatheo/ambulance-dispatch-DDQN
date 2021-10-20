@@ -2,8 +2,7 @@ import pandas as pd
 import openpyxl
 import re
 import numpy as np
-# import torch
-
+import shelve
 
 class Environment:
     """Environment class containing information about all ambulances, regions, zipcodes, populations and hospitals."""
@@ -106,6 +105,9 @@ class Environment:
                 accZip.append(accidents * (float(pop_zipcode) / totPop))
 
             self.prob_acc.update({region_nr: accZip})
+
+        environment_data = shelve.open('environment.txt')
+        environment_data['key'] = self
 
     def distance_time(self, region_nr, a, b):
         """
@@ -237,7 +239,7 @@ class State:
         if action == None:
             # We need to add waiting list here
             self.waiting_list.append({self.get_accident_location(accident_location_list): time})
-            reward = -1
+            reward = -20000
             print('No ambulances available to send out.')
             # raise ValueError("No ambulances available to send out.")
         else:
@@ -272,16 +274,3 @@ class State:
                 accident_index = i
 
         return self.env.postcode_dic[self.region_nr][accident_index]
-
-
-    # def get_torch(self):
-    #     """
-    #     Transform state object into a KxN torch, where K = number of parameters and N = number of zipcodes
-    #     :return:
-    #     """
-    #     return torch.tensor([self.bool_accident,
-    #                   self.nr_ambulances,
-    #                   self.is_base,
-    #                   self.travel_time,
-    #                   self.delta,
-    #                   self.time]).transpose(self.K, self.N)
