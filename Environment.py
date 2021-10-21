@@ -22,7 +22,6 @@ class Environment:
         self.state_k = 6  # number of parameters passed saved per state
         self.prob_acc = {}  # list of dictionaries with probability of accident occuring for each region, per zip code
         self.curr_state = []  # saves current state of environment; KxN matrix that we then pass to the environment
-        self.max_prob_acc = {} # saves maximum probability per region
         print("Initialisation complete")
 
     def import_data(self):
@@ -107,7 +106,6 @@ class Environment:
                 accZip.append(accidents * (float(pop_zipcode) / totPop))
 
             self.prob_acc.update({region_nr: accZip})
-            self.max_prob_acc.update({region_nr: max(self.prob_acc[region_nr])})
 
         environment_data = shelve.open('environment.txt')
         environment_data['key'] = self
@@ -149,29 +147,35 @@ class Environment:
 
         initial_time = 1 * 60  # 1 min
         buffer_time = 15 * 60  # 15 mins
-        res = initial_time + self.distance_time(region_nr, ambulance_loc, accident_loc) + buffer_time + self.distance_time(region_nr,
+        total_travel_time = initial_time + self.distance_time(region_nr, ambulance_loc,
+                                                              accident_loc) + buffer_time + self.distance_time(
+            region_nr,
             accident_loc,
             hospital_loc) + self.distance_time(region_nr,
-            hospital_loc, ambulance_loc)
+                                               hospital_loc, ambulance_loc)
 
-        return res
+        return total_travel_time
 
-
-    def sample_accidents(self, region_nr):
+    def create_accidents(self, region_nr):
         """
-        sample accidents uniformly over time
-        :param: region number for region of interest
-        :return: index indicating the zip code of the accident if one happens, None otherwise
+        Creates a dictionary where keys are the exact second that an accident take place, and value is the zip_code index
+        :param region_nr:
+        :return:
         """
-        accident_prob = self.prob_acc[region_nr]
-        random_values = randomizer.random(len(accident_prob))
-        if min(random_values) > self.max_prob_acc[region_nr]:
-            return None
-        return self.find(random_values, accident_prob)
+        accidents_dict = {}
+        accidents_per_day = self.accidents[region_nr]/365
+        random_values = randomizer.random(86400)
+        total_population = sum(self.pop_dic[region_nr])
+        percentage_population = []
+        for pop_zipcode in self.pop_dic[region_nr]:
+            percentage_population.append(float(pop_zipcode) / total_population)
+        #86400 is the number of seconds in a day, because a day is one episode's length
 
-    def find(self, random_values, accident_prob):
-        for zip_code_index in range(len(accident_prob)):
-            if random_values[zip_code_index] <= accident_prob[zip_code_index]:
-                return zip_code_index
+        accidents_per_second = accidents_per_day/86400
 
-        return None
+        for second in range(86400):
+            if random_values[second] < accidents_per_second:
+                zip_code_index = np.random.choice(len(percentage_population), 1, p=percentage_population)[0]
+                accidents_dict.update({second: zip_code_index})
+
+        return accidents_dict

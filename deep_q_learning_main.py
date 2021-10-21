@@ -9,6 +9,8 @@ import shelve
 from torch import device, cuda
 from Memory import ReplayMemory
 from Learner import Learner
+import torch
+import matplotlib.pyplot as plt
 # if gpu is to be used
 device = device("cuda" if cuda.is_available() else "cpu")
 # variable specifying to run training loop or not
@@ -16,37 +18,40 @@ RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 50000
+NUM_EPISODES = 100
 MAX_NR_ZIPCODES = 456  # maximum number of zipcodes per region
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 DEFAULT_DISCOUNT = 0.99
-RMSIZE = 30
+RMSIZE = 10000
 
 EPSILON_MIN = 0.05
 EPSILON_MAX_DECAY = 0.99
 
 rewards_list = [[0] for i in range(25)]
 
-def act_loop(env, agent, replay_memory):
+def act_loop(env, agent, replay_memory, learner):
+
     for episode in range(NUM_EPISODES):
-        region_nr = np.random.randint(1, NUM_OF_REGIONS+1)
+        region_nr = 22#np.random.randint(1, NUM_OF_REGIONS+1)
         if region_nr == 13 or region_nr == 14:
             continue
+
         state = State(env, region_nr)
-        learner = Learner(agent)
-        replay_memory = ReplayMemory(RMSIZE)
 
         print("Episode: ", episode+1)
         print("Region: ", region_nr)
+
         if agent.epsilon_max > EPSILON_MIN:
             agent.epsilon_max *= EPSILON_MAX_DECAY
         agent.epsilon = agent.epsilon_max
         agent.cum_r = 0
         agent.stage = 0
+
+        accidents_happened = env.create_accidents(region_nr)
+        counter = 0
         #print("Initial ambulances: ", state.nr_ambulances)
         for second in range(EPISODE_LENGTH):
-
             if second in state.ambulance_return:
                 state.nr_ambulances[state.ambulance_return[second]] += 1
                 if state.ambulance_return[second] and not(state.ambulance_return[second] in state.indexNotMasked):
@@ -58,17 +63,16 @@ def act_loop(env, agent, replay_memory):
                     # maybe new action/state and reward
                     state.nr_ambulances[state.ambulance_return[second]] -= 1
 
-            zip_code_index = env.sample_accidents(region_nr)
-            if zip_code_index:
+            if second in accidents_happened:
+                counter+=1
                 #print("Second: ", second + 1)
                 #print("Ambulances left: ", state.nr_ambulances)
 
-                state.update_state(second, zip_code_index)
+                state.update_state(second, accidents_happened[second])
 
                 action = agent.select_action(state)
                 current_state_copy = copy.deepcopy(state)
-
-                next_state, reward = state.process_action(action, second)
+                next_state, reward = state.process_action(action.item(), second)
                 next_state_copy = copy.deepcopy(next_state)
 
                 agent.cum_r += reward
@@ -76,20 +80,26 @@ def act_loop(env, agent, replay_memory):
                 agent.stage = second
                 agent.tot_stages += 1
                 agent.episode = episode
-
-                replay_memory.push(current_state_copy, action, next_state_copy, reward)
-                learner.optimize_model(replay_memory)
+                replay_memory.push(current_state_copy, action, next_state_copy, torch.tensor([[reward]], device= device))
+                if counter % 10 == 0:
+                    counter = 0
+                    learner.optimize_model(replay_memory)
 
         if episode % 10 == 0:
             agent.update_nets()
-        print("Reward: ", agent.cum_r)
-        print("---------------------------")
+        #print("Reward: ", agent.cum_r)
+        #print("---------------------------")
         rewards_list[region_nr].append(agent.cum_r)
+    store_data(agent, rewards_list)
     print('Complete')
+
+    return None
+
+
+def store_data(agent, rewards_list):
     model_data = shelve.open('model.txt')
     model_data['model'] = agent
     model_data['rewards'] = rewards_list
-    return None
 
 
 def didAccidentHappen(booleanList):
@@ -106,13 +116,10 @@ if RUN:
     #max_bases_index = max(env.bases, key=lambda x: env.bases[x])
     #max_nr_bases = len(env.bases[max_bases_index])
 
-    # set up policy DQN
-    policy_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES).to(device)
-
-    # set up target DQN
-    target_net = QNet_MLP(env.state_k, MAX_NR_ZIPCODES).to(device)
-    # set up Q learner (learning the network weights)
-    ql = QModel(env, policy_net, target_net, DEFAULT_DISCOUNT) # why do we need target_qn?
+    policy_net = QNet_MLP(env.state_k).to(device)
+    target_net = QNet_MLP(env.state_k).to(device)
+    ql = QModel(env, policy_net, target_net, DEFAULT_DISCOUNT)
     replay_memory = ReplayMemory(RMSIZE)
+    learner = Learner(ql)
 
-    act_loop(env, ql, replay_memory)
+    act_loop(env, ql, replay_memory, learner)

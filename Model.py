@@ -1,6 +1,8 @@
 import random
 
 import torch
+from torch import device, cuda
+device = device("cuda" if cuda.is_available() else "cpu")
 
 # Exploration rate (epsilon) is probability of choosing a random action
 EPSILON_MAX = 1.00
@@ -52,23 +54,24 @@ class QModel(object):
         qvals = self.policy_net(state.get_torch())
         qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
         if len(qvals_selectable) == 0:
-            return -1
+            return torch.tensor([[-1]], device=device)
         qvals_selectable = torch.stack(qvals_selectable)
+
         action = torch.argmax(qvals_selectable)
         action_index = state.indexNotMasked[action]
 
-        return action_index
+        return torch.tensor([[action_index]], device=device)
 
     def decrement_epsilon(self):
         return self.epsilon * self.epsilon_decay if self.epsilon > self.epsilon_min else self.epsilon_min
-    
+
     def select_action(self, state):
         """Selects action according to epsilon greedy strategy: either random or best according to Qvalue"""
         self.epsilon = self.decrement_epsilon()
         if random.random() < self.epsilon:
             if len(state.indexNotMasked) == 0:
-                return -1
-            return random.choice(state.indexNotMasked)
+                return torch.tensor([[-1]], device=device)
+            return torch.tensor([[state.indexNotMasked[random.randrange(len(state.indexNotMasked))]]], device=device, dtype=torch.long)
         else:
             return self.get_max_q(state)
 
