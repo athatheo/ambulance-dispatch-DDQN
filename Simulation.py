@@ -128,10 +128,5 @@ def run_sim():
     # plt.ylabel("Single reward")
     # plt.savefig("greedy_singleReward")
     # plt.show()
+    return tot_reward
 
-    plt.plot(np.arange(NUM_OF_EPISODES)+1, tot_reward[:, -1])
-    plt.xlabel("Episode")
-    plt.ylabel("Total reward")
-    plt.title("Total reward per episode")
-    plt.savefig("greedy_totReward")
-    plt.show()
