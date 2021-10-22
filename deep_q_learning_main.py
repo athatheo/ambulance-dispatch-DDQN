@@ -26,14 +26,14 @@ DEFAULT_DISCOUNT = 0.99
 RMSIZE = 10000
 
 EPSILON_MIN = 0.05
-EPSILON_MAX_DECAY = 0.99
+EXPLORATION_MAX = 1000
 
 rewards_list = [[0] for i in range(25)]
 
 def act_loop(env, agent, replay_memory, learner):
     max_qvals_list = []
     for episode in range(NUM_EPISODES):
-        region_nr = 22#np.random.randint(1, NUM_OF_REGIONS+1)
+        region_nr = 22 #np.random.randint(1, NUM_OF_REGIONS+1)
         if region_nr == 13 or region_nr == 14:
             continue
 
@@ -42,9 +42,11 @@ def act_loop(env, agent, replay_memory, learner):
         print("Episode: ", episode+1)
         print("Region: ", region_nr)
 
-        if agent.epsilon_max > EPSILON_MIN:
-            agent.epsilon_max *= EPSILON_MAX_DECAY
-        agent.epsilon = agent.epsilon_max
+        if episode > EXPLORATION_MAX:
+            agent.epsilon = agent.epsilon_min
+        else:
+            agent.epsilon = (agent.epsilon_max - agent.epsilon_min) * (
+                        EXPLORATION_MAX - episode) / EXPLORATION_MAX + agent.epsilon_min
         agent.cum_r = 0
         agent.stage = 0
 

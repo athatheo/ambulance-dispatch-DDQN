@@ -60,13 +60,9 @@ class QModel(object):
         action_index = state.indexNotMasked[action]
         return torch.tensor([[action_index]], device=device)
 
-    def decrement_epsilon(self):
-        return self.epsilon * self.epsilon_decay if self.epsilon > self.epsilon_min else self.epsilon_min
-
     def select_action(self, state):
         """Selects action according to epsilon greedy strategy: either random or best according to Qvalue"""
-        self.epsilon = self.decrement_epsilon()
-        if random.random() < 0: #self.epsilon:
+        if random.random() < self.epsilon:
             print("Explore random")
             if len(state.indexNotMasked) == 0:
                 return torch.tensor([[-1]], device=device)
