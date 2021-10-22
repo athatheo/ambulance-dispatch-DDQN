@@ -33,7 +33,7 @@ class Learner(object):
         action_batch = cat(batch.action)
         reward_batch = cat(batch.reward)
 
-        q_values = self.get_q_vals(self.model , state_batch)
+        q_values = self.get_q_vals(self.model, state_batch)
         next_q_values = self.get_q_vals(self.model, next_states)
         q_values = q_values.unsqueeze(1)
         next_q_values = next_q_values.unsqueeze(1)

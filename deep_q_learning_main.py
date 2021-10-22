@@ -18,7 +18,7 @@ RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 100
+NUM_EPISODES = 300
 MAX_NR_ZIPCODES = 456  # maximum number of zipcodes per region
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
@@ -31,7 +31,7 @@ EPSILON_MAX_DECAY = 0.99
 rewards_list = [[0] for i in range(25)]
 
 def act_loop(env, agent, replay_memory, learner):
-
+    max_qvals_list = []
     for episode in range(NUM_EPISODES):
         region_nr = 22#np.random.randint(1, NUM_OF_REGIONS+1)
         if region_nr == 13 or region_nr == 14:
@@ -50,6 +50,9 @@ def act_loop(env, agent, replay_memory, learner):
 
         accidents_happened = env.create_accidents(region_nr)
         counter = 0
+
+        first = True
+
         #print("Initial ambulances: ", state.nr_ambulances)
         for second in range(EPISODE_LENGTH):
             if second in state.ambulance_return:
@@ -69,6 +72,14 @@ def act_loop(env, agent, replay_memory, learner):
                 #print("Ambulances left: ", state.nr_ambulances)
 
                 state.update_state(second, accidents_happened[second])
+                if first:
+                    first = False
+                    qvals = agent.policy_net(state.get_torch())
+                    qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
+                    if len(qvals_selectable) == 0:
+                        return torch.tensor(-1, device=device)
+                    qvals_selectable = torch.stack(qvals_selectable)
+                    max_qvals_list.append(torch.max(qvals_selectable).item())
 
                 action = agent.select_action(state)
                 current_state_copy = copy.deepcopy(state)
@@ -81,7 +92,7 @@ def act_loop(env, agent, replay_memory, learner):
                 agent.tot_stages += 1
                 agent.episode = episode
                 replay_memory.push(current_state_copy, action, next_state_copy, torch.tensor([[reward]], device= device))
-                if counter % 10 == 0:
+                if counter % 5 == 0:
                     counter = 0
                     learner.optimize_model(replay_memory)
 
@@ -92,7 +103,8 @@ def act_loop(env, agent, replay_memory, learner):
         rewards_list[region_nr].append(agent.cum_r)
     store_data(agent, rewards_list)
     print('Complete')
-
+    plt.plot(max_qvals_list)
+    plt.show()
     return None
 
 
