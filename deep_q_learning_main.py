@@ -18,8 +18,8 @@ RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 300
-MAX_NR_ZIPCODES = 456  # maximum number of zipcodes per region
+NUM_EPISODES = 15000
+
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 DEFAULT_DISCOUNT = 0.99
@@ -33,7 +33,7 @@ rewards_list = [[0] for i in range(25)]
 def act_loop(env, agent, replay_memory, learner):
     max_qvals_list = []
     for episode in range(NUM_EPISODES):
-        region_nr = 22#np.random.randint(1, NUM_OF_REGIONS+1)
+        region_nr = np.random.randint(22, 24)#, NUM_OF_REGIONS+1)
         if region_nr == 13 or region_nr == 14:
             continue
 
@@ -64,6 +64,7 @@ def act_loop(env, agent, replay_memory, learner):
                     # pop from waiting list
                     # maybe sth with reward
                     # maybe new action/state and reward
+                    state.waiting_list.pop()
                     state.nr_ambulances[state.ambulance_return[second]] -= 1
 
             if second in accidents_happened:
@@ -92,14 +93,12 @@ def act_loop(env, agent, replay_memory, learner):
                 agent.tot_stages += 1
                 agent.episode = episode
                 replay_memory.push(current_state_copy, action, next_state_copy, torch.tensor([[reward]], device= device))
-                if counter % 5 == 0:
+                if counter % 10 == 0:
                     counter = 0
                     learner.optimize_model(replay_memory)
 
         if episode % 10 == 0:
             agent.update_nets()
-        #print("Reward: ", agent.cum_r)
-        #print("---------------------------")
         rewards_list[region_nr].append(agent.cum_r)
     store_data(agent, rewards_list)
     print('Complete')

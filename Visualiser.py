@@ -15,6 +15,11 @@ class Visualiser(object):
         plt.title("Region: " + str(region_nr))
         plt.show()
 
+    def scatter(self, region_nr):
+        plt.scatter(range(len(self.rewards[region_nr])), self.rewards[region_nr])
+        plt.title("Region: " + str(region_nr))
+        plt.show()
+
     def show_plots_for_all_regions(self):
         for region_nr in range(24):
             if region_nr == 0 or region_nr == 13 or region_nr == 14:

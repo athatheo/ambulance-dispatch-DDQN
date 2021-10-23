@@ -11,12 +11,13 @@ EPSILON_DECAY = 0.95
 
 # discount rate of future rewards
 DEFAULT_DISCOUNT = 0.99
+LEARNING_RATE = 0.001  # QNET
 
 RMSIZE = 100
 
 class QModel(object):
 
-    def __init__(self, env, policy_net, target_net, discount=DEFAULT_DISCOUNT, rm_size=RMSIZE):
+    def __init__(self, env, policy_net, target_net, discount=DEFAULT_DISCOUNT, learning_rate = LEARNING_RATE, rm_size=RMSIZE):
         """
         Construct the Q-learner.
         :param env: instance of Environment.py
@@ -35,9 +36,14 @@ class QModel(object):
         self.epsilon_min = EPSILON_MIN
         self.epsilon_decay = EPSILON_DECAY
 
+        self.learning_rate = learning_rate
+
         #self.batch_size = BATCH_SIZE
         self.target_net = target_net
         self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        self.loss_fn = torch.nn.MSELoss(reduction='mean')
+        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=self.learning_rate, alpha=0.9)
 
         self.name = "agent1"
         self.episode = 0
@@ -54,7 +60,7 @@ class QModel(object):
         qvals = self.policy_net(state.get_torch())
         qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
         if len(qvals_selectable) == 0:
-            return torch.tensor([[-1]], device=device)
+            return torch.tensor([[0]], device=device)
         qvals_selectable = torch.stack(qvals_selectable)
         action = torch.argmax(qvals_selectable)
         action_index = state.indexNotMasked[action]
@@ -66,10 +72,9 @@ class QModel(object):
     def select_action(self, state):
         """Selects action according to epsilon greedy strategy: either random or best according to Qvalue"""
         self.epsilon = self.decrement_epsilon()
-        if random.random() < 0: #self.epsilon:
-            print("Explore random")
+        if random.random() < 0.05:#self.epsilon:
             if len(state.indexNotMasked) == 0:
-                return torch.tensor([[-1]], device=device)
+                return torch.tensor([[0]], device=device)
             return torch.tensor([[state.indexNotMasked[random.randrange(len(state.indexNotMasked))]]], device=device, dtype=torch.long)
         else:
             return self.get_max_q(state)

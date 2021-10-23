@@ -61,7 +61,7 @@ class State(object):
             if zip_code in self.env.bases[self.region_nr]:
                 self.travel_time[i] = self.env.distance_time(self.region_nr, zip_code, accident_loc)
             else:
-                self.travel_time[i] = 0
+                self.travel_time[i] = 99999
 
     def process_action(self, action, time):
         """
@@ -71,7 +71,7 @@ class State(object):
         :param accident_loc: location of the accident to calculate when an amublance will arrive
         :return reward: minus time from ambulance to the accident
         """
-        if action == -1:
+        if action == 0:
             # Send the closest ambulance in a greedy or if thats not possible, add in the waiting list
             return self, -20000
         else:

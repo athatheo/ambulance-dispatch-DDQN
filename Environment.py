@@ -133,7 +133,6 @@ class Environment:
         Caluclates the total travel time for an ambulance to the CLOSEST hosptial plus 15 min buffer
         :param ambulance_loc: postal code of the ambulance location
         :param accident_loc: postal code of the accident location
-        :param hospital_loc: postal code of the hospital location
         :return: total travel time in s
         """
         min_dist_time = 9999
