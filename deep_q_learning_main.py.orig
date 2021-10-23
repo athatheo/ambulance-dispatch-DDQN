@@ -33,7 +33,11 @@ rewards_list = [[0] for i in range(25)]
 def act_loop(env, agent, replay_memory, learner):
     max_qvals_list = []
     for episode in range(NUM_EPISODES):
+<<<<<<< HEAD
         region_nr = np.random.randint(22, 24)#, NUM_OF_REGIONS+1)
+=======
+        region_nr = 22 #np.random.randint(1, NUM_OF_REGIONS+1)
+>>>>>>> 0cb401629982eb9a5d33c3a49524f2843cb13a9a
         if region_nr == 13 or region_nr == 14:
             continue
 
@@ -101,8 +105,6 @@ def act_loop(env, agent, replay_memory, learner):
 
         if episode % 10 == 0:
             agent.update_nets()
-        #print("Reward: ", agent.cum_r)
-        #print("---------------------------")
         rewards_list[region_nr].append(agent.cum_r)
     store_data(agent, rewards_list)
     print('Complete')
