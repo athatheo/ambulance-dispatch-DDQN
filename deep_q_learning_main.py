@@ -11,20 +11,20 @@ from Memory import ReplayMemory
 from Learner import Learner
 import torch
 import matplotlib.pyplot as plt
-# if gpu is to be used
+
 device = device("cuda" if cuda.is_available() else "cpu")
-# variable specifying to run training loop or not
+
 RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES =  100000
+NUM_EPISODES = 1000
 
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 
 EPSILON_MIN = 0.05
-EXPLORATION_MAX = 80000
+EXPLORATION_MAX = 1000
 
 rewards_list = [[0] for i in range(25)]
 greedy_rewards_list = [[0] for i in range(25)]
@@ -41,8 +41,6 @@ def act_loop(env, agent, replay_memory, learner):
             #continue
 
         state, state_greedy = State(env, region_nr), State(env, region_nr)
-
-        print("Episode: ", episode+1)
 
         agent.restart_counters(episode)
         agent.update_epsilon(episode, EXPLORATION_MAX)
@@ -98,10 +96,12 @@ def act_loop(env, agent, replay_memory, learner):
         rewards_list[region_nr].append(agent.cum_r)
         greedy_rewards_list[region_nr].append(agent.cum_r_greedy)
         difference_list[region_nr].append(agent.cum_r-agent.cum_r_greedy)
+
         if episode % 10 == 0:
+            print("Episode: ", episode + 1)
             agent.update_nets()
             store_data(agent, rewards_list, greedy_rewards_list, difference_list)
-        if episode % 100 == 0:
+        if episode % 500 == 0:
             plot_end(learner.loss_array, max_qvals_list, difference_list)
 
     print('Complete')
@@ -145,5 +145,4 @@ if RUN:
     ql = QModel(env, policy_net, target_net)
     replay_memory = ReplayMemory()
     learner = Learner(ql)
-
     act_loop(env, ql, replay_memory, learner)
