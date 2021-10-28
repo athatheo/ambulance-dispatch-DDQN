@@ -18,123 +18,132 @@ RUN = True
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 15000
+NUM_EPISODES =  100000
 
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
-DEFAULT_DISCOUNT = 0.99
-RMSIZE = 10000
 
 EPSILON_MIN = 0.05
-EXPLORATION_MAX = 1000
+EXPLORATION_MAX = 80000
 
 rewards_list = [[0] for i in range(25)]
+greedy_rewards_list = [[0] for i in range(25)]
+difference_list = [[0] for i in range(25)]
+max_qvals_list = []
 
 def act_loop(env, agent, replay_memory, learner):
-    max_qvals_list = []
-    for episode in range(NUM_EPISODES):
-        region_nr = np.random.randint(22, 24)#, NUM_OF_REGIONS+1)
-        if region_nr == 13 or region_nr == 14:
-            continue
+    region_nr = 22
+    accidents_happened = env.create_accidents(region_nr)
 
-        state = State(env, region_nr)
+    for episode in range(NUM_EPISODES):
+        #region_nr = 22# np.random.randint(22, 24)#, NUM_OF_REGIONS+1)
+        #if region_nr == 13 or region_nr == 14:
+            #continue
+
+        state, state_greedy = State(env, region_nr), State(env, region_nr)
 
         print("Episode: ", episode+1)
-        print("Region: ", region_nr)
 
-        if episode > EXPLORATION_MAX:
-            agent.epsilon = agent.epsilon_min
-        else:
-            agent.epsilon = (agent.epsilon_max - agent.epsilon_min) * (
-                        EXPLORATION_MAX - episode) / EXPLORATION_MAX + agent.epsilon_min
-        agent.cum_r = 0
-        agent.stage = 0
-
-        accidents_happened = env.create_accidents(region_nr)
+        agent.restart_counters(episode)
+        agent.update_epsilon(episode, EXPLORATION_MAX)
         counter = 0
 
         first = True
+        current_state_copy = None
 
-        #print("Initial ambulances: ", state.nr_ambulances)
         for second in range(EPISODE_LENGTH):
             if second in state.ambulance_return:
                 state.nr_ambulances[state.ambulance_return[second]] += 1
+
                 if state.ambulance_return[second] and not(state.ambulance_return[second] in state.indexNotMasked):
                     state.indexNotMasked = np.append(state.indexNotMasked, state.ambulance_return[second])
-                if len(state.waiting_list) > 0:
-                    # process action
-                    # pop from waiting list
-                    # maybe sth with reward
-                    # maybe new action/state and reward
-                    state.waiting_list.pop()
-                    state.nr_ambulances[state.ambulance_return[second]] -= 1
+                state.ambulance_return.pop(second)
+
+            if second in state_greedy.ambulance_return:
+                state_greedy.nr_ambulances[state_greedy.ambulance_return.pop(second)] += 1
 
             if second in accidents_happened:
                 counter+=1
-                #print("Second: ", second + 1)
-                #print("Ambulances left: ", state.nr_ambulances)
-
                 state.update_state(second, accidents_happened[second])
+                state_greedy.update_state_greedy(second, accidents_happened[second])
+
+                next_state_copy = copy.deepcopy(state)
+                if current_state_copy:
+                    replay_memory.push(current_state_copy, action, next_state_copy, torch.tensor([[reward]], device= device))
+
                 if first:
                     first = False
                     qvals = agent.policy_net(state.get_torch())
-                    qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
-                    if len(qvals_selectable) == 0:
-                        return torch.tensor(-1, device=device)
-                    qvals_selectable = torch.stack(qvals_selectable)
-                    max_qvals_list.append(torch.max(qvals_selectable).item())
+                    max_qvals_list.append(torch.max(torch.stack([qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked])).item())
+
+                current_state_copy = copy.deepcopy(state)
 
                 action = agent.select_action(state)
-                current_state_copy = copy.deepcopy(state)
-                next_state, reward = state.process_action(action.item(), second)
-                next_state_copy = copy.deepcopy(next_state)
+                reward = state.process_action(action.item(), second)
 
+                action_greedy = agent.select_action_greedy(state_greedy)
+                reward_greedy = state_greedy.process_action_greedy(action_greedy, second)
+
+                agent.cum_r_greedy += reward_greedy
                 agent.cum_r += reward
                 agent.tot_r += reward
                 agent.stage = second
                 agent.tot_stages += 1
-                agent.episode = episode
-                replay_memory.push(current_state_copy, action, next_state_copy, torch.tensor([[reward]], device= device))
-                if counter % 10 == 0:
+
+                if counter % 5 == 0:
                     counter = 0
                     learner.optimize_model(replay_memory)
 
+
+        rewards_list[region_nr].append(agent.cum_r)
+        greedy_rewards_list[region_nr].append(agent.cum_r_greedy)
+        difference_list[region_nr].append(agent.cum_r-agent.cum_r_greedy)
         if episode % 10 == 0:
             agent.update_nets()
-        #print("Reward: ", agent.cum_r)
-        #print("---------------------------")
-        rewards_list[region_nr].append(agent.cum_r)
-    store_data(agent, rewards_list)
+            store_data(agent, rewards_list, greedy_rewards_list, difference_list)
+        if episode % 100 == 0:
+            plot_end(learner.loss_array, max_qvals_list, difference_list)
+
     print('Complete')
-    plt.plot(max_qvals_list)
+    plot_end(learner.loss_array, max_qvals_list, difference_list)
+    return
+
+
+def plot_end(loss, max_qvals, difference):
+    plt.scatter(range(len(loss)), loss)
+    plt.title("Loss ")
     plt.show()
-    return None
+    plt.scatter(range(len(max_qvals)), max_qvals)
+    plt.title("Max Qvalswt ")
+    plt.show()
+    plt.scatter(range(len(difference[22])), difference[22])
+    plt.title("Difference ML & Greedy")
+    plt.show()
+    plt.scatter(range(len(greedy_rewards_list[22])), greedy_rewards_list[22])
+    plt.title("Greedy")
+    plt.show()
+    from Visualiser import Visualiser
+    vis = Visualiser()
+    vis.plot_rolling_average(100, 22)
 
 
-def store_data(agent, rewards_list):
+def store_data(agent, rewards_list, greedy_rewards_list, difference_list):
     model_data = shelve.open('model.txt')
     model_data['model'] = agent
     model_data['rewards'] = rewards_list
-
-
-def didAccidentHappen(booleanList):
-    if booleanList.count(1)>0:
-        return True
-    return False
+    model_data['greedy_rewards_list'] = greedy_rewards_list
+    model_data['difference_list'] = difference_list
 
 
 if RUN:
-    # set up environment
     environment_data = shelve.open('environment.txt')
     env = environment_data['key']
     environment_data.close()
-    #max_bases_index = max(env.bases, key=lambda x: env.bases[x])
-    #max_nr_bases = len(env.bases[max_bases_index])
 
     policy_net = QNet_MLP(env.state_k).to(device)
     target_net = QNet_MLP(env.state_k).to(device)
-    ql = QModel(env, policy_net, target_net, DEFAULT_DISCOUNT)
-    replay_memory = ReplayMemory(RMSIZE)
+    ql = QModel(env, policy_net, target_net)
+    replay_memory = ReplayMemory()
     learner = Learner(ql)
 
     act_loop(env, ql, replay_memory, learner)

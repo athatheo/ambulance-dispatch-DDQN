@@ -2,7 +2,6 @@ import pandas as pd
 import re
 import numpy as np
 import shelve
-
 randomizer = np.random.default_rng()
 
 
@@ -19,7 +18,7 @@ class Environment:
         self.hospitals = {}  # dictionary with region as keys and hospital postcodes as values
         self.nr_postcodes = {}  # records number of postcodes per region
         self.nr_ambulances = {}  # records number of ambulances per region
-        self.state_k = 6  # number of parameters passed saved per state
+        self.state_k = 4  # number of parameters passed saved per state
         self.prob_acc = {}  # list of dictionaries with probability of accident occuring for each region, per zip code
         self.curr_state = []  # saves current state of environment; KxN matrix that we then pass to the environment
         print("Initialisation complete")

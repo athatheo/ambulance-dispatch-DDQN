@@ -1,5 +1,5 @@
 import random
-
+import numpy as np
 import torch
 from torch import device, cuda
 device = device("cuda" if cuda.is_available() else "cpu")
@@ -9,15 +9,11 @@ EPSILON_MAX = 1.00
 EPSILON_MIN = 0.05
 EPSILON_DECAY = 0.95
 
-# discount rate of future rewards
-DEFAULT_DISCOUNT = 0.99
-LEARNING_RATE = 0.001  # QNET
-
-RMSIZE = 100
+LEARNING_RATE = 0.1  # QNET
 
 class QModel(object):
 
-    def __init__(self, env, policy_net, target_net, discount=DEFAULT_DISCOUNT, learning_rate = LEARNING_RATE, rm_size=RMSIZE):
+    def __init__(self, env, policy_net, target_net, learning_rate = LEARNING_RATE):
         """
         Construct the Q-learner.
         :param env: instance of Environment.py
@@ -28,8 +24,6 @@ class QModel(object):
         """
         self.env = env
         self.policy_net = policy_net # this is the dqn
-        #self.rm = ReplayMemory(rm_size)  # replay memory stores (a subset of) experience across episode
-        self.discount = discount
 
         self.epsilon = EPSILON_MAX
         self.epsilon_max = EPSILON_MAX
@@ -38,15 +32,15 @@ class QModel(object):
 
         self.learning_rate = learning_rate
 
-        #self.batch_size = BATCH_SIZE
         self.target_net = target_net
         self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()
 
-        self.loss_fn = torch.nn.MSELoss(reduction='mean')
-        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=self.learning_rate, alpha=0.9)
-
+        self.loss_fn = torch.nn.SmoothL1Loss().to(device)
+        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=self.learning_rate)
         self.name = "agent1"
         self.episode = 0
+        self.cum_r_greedy = 0
         self.cum_r = 0  # cumulative reward in current episode
         self.tot_r = 0  # cumulative reward in lifetime
         self.stage = 0  # the time step, or 'stage' in this episode
@@ -58,6 +52,7 @@ class QModel(object):
 
         self.policy_net.train()
         qvals = self.policy_net(state.get_torch())
+        state.indexNotMasked = np.sort(state.indexNotMasked)
         qvals_selectable = [qvals[i] for i in range(len(qvals)) if i in state.indexNotMasked]
         if len(qvals_selectable) == 0:
             return torch.tensor([[0]], device=device)
@@ -66,13 +61,10 @@ class QModel(object):
         action_index = state.indexNotMasked[action]
         return torch.tensor([[action_index]], device=device)
 
-    def decrement_epsilon(self):
-        return self.epsilon * self.epsilon_decay if self.epsilon > self.epsilon_min else self.epsilon_min
-
     def select_action(self, state):
         """Selects action according to epsilon greedy strategy: either random or best according to Qvalue"""
-        self.epsilon = self.decrement_epsilon()
-        if random.random() < 0.05:#self.epsilon:
+        x = random.random()
+        if x < self.epsilon:
             if len(state.indexNotMasked) == 0:
                 return torch.tensor([[0]], device=device)
             return torch.tensor([[state.indexNotMasked[random.randrange(len(state.indexNotMasked))]]], device=device, dtype=torch.long)
@@ -82,3 +74,31 @@ class QModel(object):
 
     def update_nets(self):
         self.target_net.load_state_dict(self.policy_net.state_dict())
+
+    def select_action_greedy(self, state):
+        min_dist_time = 99999
+        min_base = None
+        travel_time = state.travel_time
+
+        for i, trav_time in enumerate(travel_time):
+            if trav_time == 99999:
+                pass
+            elif trav_time < min_dist_time:
+                min_dist_time = trav_time
+                min_base = i
+        if min_base is None:
+            min_base = 0
+        return min_base
+
+    def restart_counters(self, episode):
+        self.cum_r = 0
+        self.cum_r_greedy = 0
+        self.stage = 0
+        self.episode = episode
+
+    def update_epsilon(self, episode, exploration_max):
+        if episode > exploration_max:
+            self.epsilon = self.epsilon_min
+        else:
+            self.epsilon = (self.epsilon_max - self.epsilon_min) * (
+                        exploration_max - episode) / exploration_max + self.epsilon_min

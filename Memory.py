@@ -4,11 +4,12 @@ import random
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
+RMSIZE = 1000
 
 class ReplayMemory(object):
 
-    def __init__(self, capacity):
-        self.memory = deque([],maxlen=capacity)
+    def __init__(self):
+        self.memory = deque([],maxlen=RMSIZE)
 
     def push(self, *args):
         """Save a transition"""
