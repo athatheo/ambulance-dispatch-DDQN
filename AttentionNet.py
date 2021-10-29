@@ -8,7 +8,7 @@ device = device("cuda" if cuda.is_available() else "cpu")
 HIDDEN_NODES = 512
 
 class AttentionNet_MLP(nn.Module):
-    def __init__(self, num_in, num_head = 6, num_layers = 2, dim_feedforward = HIDDEN_NODES, p_dropout = 0.1):
+    def __init__(self, num_in, num_head = 8, num_layers = 3, dim_feedforward = HIDDEN_NODES, p_dropout = 0.1):
         """ Constructor method. Set up NN
         :param num_in: number of zip codes in the region
         """
