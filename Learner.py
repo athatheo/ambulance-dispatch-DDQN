@@ -51,13 +51,16 @@ class Learner(object):
         for length in not_mask_lengths:
             slice = narrow(next_q_values_all, 0, index, length)
             index += length
-            max_q_value = slice.max()
+            if length == 0:
+                max_q_value = 0
+            else:
+                max_q_value = slice.max()
             next_q_values_max = torch.cat((next_q_values_max, tensor([max_q_value], device=device)), 0)
 
         # Compute the expected Q values
         expected_q_values = (next_q_values_max * DEFAULT_DISCOUNT) + reward_batch
         optimizer = self.model.optimizer
-        loss = self.model.loss_fn(q_values, expected_q_values)
+        loss = self.model.loss_fn(expected_q_values, q_values)
 
         self.loss_array.append(loss.item())
 

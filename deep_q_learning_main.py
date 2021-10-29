@@ -21,13 +21,13 @@ METHOD = "Self-attention"
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 1000
+NUM_EPISODES = 600
 
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 
 EPSILON_MIN = 0.05
-EXPLORATION_MAX = 1000
+EXPLORATION_MAX = 600
 
 rewards_list = [[0] for i in range(25)]
 greedy_rewards_list = [[0] for i in range(25)]
@@ -104,7 +104,7 @@ def act_loop(env, agent, replay_memory, learner):
             print("Episode: ", episode + 1)
             agent.update_nets()
             store_data(agent, rewards_list, greedy_rewards_list, difference_list)
-        if episode % 500 == 0:
+        if episode % 100 == 0:
             plot_end(learner.loss_array, max_qvals_list, difference_list)
 
     print('Complete')

@@ -9,7 +9,7 @@ EPSILON_MAX = 1.00
 EPSILON_MIN = 0.05
 EPSILON_DECAY = 0.95
 
-LEARNING_RATE = 0.03  # QNET
+LEARNING_RATE = 0.5  # QNET
 
 class QModel(object):
 
@@ -36,7 +36,7 @@ class QModel(object):
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
-        self.loss_fn = torch.nn.MSELoss().to(device)
+        self.loss_fn = torch.nn.SmoothL1Loss().to(device)
         self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=self.learning_rate)
         self.name = "agent1"
         self.episode = 0

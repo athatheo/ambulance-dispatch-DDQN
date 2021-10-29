@@ -89,7 +89,7 @@ class State(object):
         """
         if action == 0:
 
-            return -200
+            return -1000
         else:
             accident_loc = self.get_accident_location()
             self.nr_ambulances[action] -= 1
@@ -98,9 +98,10 @@ class State(object):
             total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action],
                                                        accident_loc)
             self.ambulance_return.update({total_travel_time + time: action})
-        if self.travel_time[action] == 0:
-            return 10000 / 100
-        return 10000/self.travel_time[action]
+        #if self.travel_time[action] == 0:
+            #return 10000 / 100
+        #return 10000/self.travel_time[action]
+        return -self.travel_time[action]
 
     def process_action_greedy(self, action, time):
         """
@@ -112,7 +113,7 @@ class State(object):
         """
         if action == 0 or self.nr_ambulances[action] == 0:
 
-            return -200
+            return -1000
         else:
             accident_loc = self.get_accident_location()
             self.nr_ambulances[action] -= 1
@@ -121,10 +122,11 @@ class State(object):
             total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action],
                                                        accident_loc)
             self.ambulance_return.update({total_travel_time + time: action})
-        if self.travel_time[action] == 0:
-            return 10000 / 100
+        #if self.travel_time[action] == 0:
+            #return 10000 / 100
 
-        return 10000/self.travel_time[action]
+        #return 10000/self.travel_time[action]
+        return -self.travel_time[action]
 
     def update_state(self, time, zip_code_index):
         if self.accident_location_index != -1:
