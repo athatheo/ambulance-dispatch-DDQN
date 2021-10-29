@@ -106,7 +106,7 @@ class Environment:
 
             self.prob_acc.update({region_nr: accZip})
 
-        environment_data = shelve.open('environment.txt')
+        environment_data = shelve.open('environment.db.txt')
         environment_data['key'] = self
 
     def distance_time(self, region_nr, a, b):

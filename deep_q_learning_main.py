@@ -145,9 +145,11 @@ def store_data(agent, rewards_list, greedy_rewards_list, difference_list):
 
 
 if RUN:
-    environment_data = shelve.open('environment.txt')
+    environment_data = shelve.open('environment.db.txt')
     env = environment_data['key']
     environment_data.close()
+    #env = Environment()
+    #env.import_data()
 
     if METHOD == "QNet":
         policy_net = QNet_MLP(env.state_k).to(device)
