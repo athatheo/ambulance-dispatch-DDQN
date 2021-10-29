@@ -17,10 +17,11 @@ class QNet_MLP(nn.Module):
         super(QNet_MLP, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(num_in, HIDDEN_NODES1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1),
-            nn.ReLU(),
-            nn.Linear(HIDDEN_NODES1, 1)
+            nn.LeakyReLU(),
+            nn.Linear(HIDDEN_NODES1, 1),
+            nn.Tanh()
         )
 
 

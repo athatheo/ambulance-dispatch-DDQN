@@ -14,7 +14,7 @@ class State(object):
         """
         # Doesn't it initialize a state for the region and not the specific zipcode?
         self.env = env
-        self.K = 4
+        self.K = 3
         self.N = len(env.postcode_dic[region_nr])
         self.ambulance_return = {}  # Dictionary with key: when will an ambulance return and value: zip code of base
         self.region_nr = region_nr
@@ -89,7 +89,7 @@ class State(object):
         """
         if action == 0:
 
-            return -1000
+            return -100
         else:
             accident_loc = self.get_accident_location()
             self.nr_ambulances[action] -= 1
@@ -98,10 +98,10 @@ class State(object):
             total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action],
                                                        accident_loc)
             self.ambulance_return.update({total_travel_time + time: action})
-        #if self.travel_time[action] == 0:
-            #return 10000 / 100
-        #return 10000/self.travel_time[action]
-        return -self.travel_time[action]
+        if self.travel_time[action] == 0:
+            return 10000 / 100
+        return 10000/self.travel_time[action]
+        #return -self.travel_time[action]
 
     def process_action_greedy(self, action, time):
         """
@@ -113,7 +113,7 @@ class State(object):
         """
         if action == 0 or self.nr_ambulances[action] == 0:
 
-            return -1000
+            return -100
         else:
             accident_loc = self.get_accident_location()
             self.nr_ambulances[action] -= 1
@@ -122,11 +122,11 @@ class State(object):
             total_travel_time = self.env.calculate_ttt(self.region_nr, self.env.postcode_dic[self.region_nr][action],
                                                        accident_loc)
             self.ambulance_return.update({total_travel_time + time: action})
-        #if self.travel_time[action] == 0:
-            #return 10000 / 100
+        if self.travel_time[action] == 0:
+            return 10000 / 100
 
-        #return 10000/self.travel_time[action]
-        return -self.travel_time[action]
+        return 10000/self.travel_time[action]
+        #return -self.travel_time[action]
 
     def update_state(self, time, zip_code_index):
         if self.accident_location_index != -1:
@@ -157,6 +157,9 @@ class State(object):
         Transform state object into a KxN torch, where K = number of parameters and N = number of zipcodes
         :return:
         """
+        return torch.transpose(torch.tensor([self.nr_ambulances,
+                                             self.travel_time,
+                                             self.time], device=device), 0, 1)
         return torch.transpose(torch.tensor([self.nr_ambulances,
                                              self.travel_time,
                                              self.time,

@@ -14,20 +14,19 @@ import torch
 import matplotlib.pyplot as plt
 
 device = device("cuda" if cuda.is_available() else "cpu")
-
 RUN = True
 # Method specifies the neural network structure used either "QNet" or "Self-attention"
-METHOD = "QNet"
+METHOD = "Self-attention"
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 600
+NUM_EPISODES = 2000
 
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 
 EPSILON_MIN = 0.05
-EXPLORATION_MAX = 600
+EXPLORATION_MAX = 2000
 
 rewards_list = [[0] for i in range(25)]
 greedy_rewards_list = [[0] for i in range(25)]
@@ -95,12 +94,13 @@ def act_loop(env, agent, replay_memory, learner):
                     counter = 0
                     learner.optimize_model(replay_memory)
 
+        replay_memory.push(current_state_copy, action, None, torch.tensor([[reward]], device=device))
 
         rewards_list[region_nr].append(agent.cum_r)
         greedy_rewards_list[region_nr].append(agent.cum_r_greedy)
         difference_list[region_nr].append(agent.cum_r-agent.cum_r_greedy)
 
-        if episode % 10 == 0:
+        if episode % 30 == 0:
             print("Episode: ", episode + 1)
             agent.update_nets()
             store_data(agent, rewards_list, greedy_rewards_list, difference_list)
@@ -118,12 +118,18 @@ def plot_end(loss, max_qvals, difference):
     plt.show()
     plt.scatter(range(len(max_qvals)), max_qvals)
     plt.title("Max Qvalswt ")
+    plt.xlabel("Episodes")
+    plt.ylabel("Q-Values in first run in episode")
     plt.show()
     plt.scatter(range(len(difference[22])), difference[22])
     plt.title("Difference ML & Greedy")
+    plt.xlabel("Episodes")
+    plt.ylabel("Reward difference")
     plt.show()
     plt.scatter(range(len(greedy_rewards_list[22])), greedy_rewards_list[22])
     plt.title("Greedy")
+    plt.xlabel("Episodes")
+    plt.ylabel("Rewards")
     plt.show()
     from Visualiser import Visualiser
     vis = Visualiser()

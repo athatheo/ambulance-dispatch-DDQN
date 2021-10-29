@@ -5,10 +5,10 @@ from torch import device, cuda, tanh
 
 device = device("cuda" if cuda.is_available() else "cpu")
 
-HIDDEN_NODES = 512
+HIDDEN_NODES = 64
 
 class AttentionNet_MLP(nn.Module):
-    def __init__(self, num_in, num_head = 6, num_layers = 2, dim_feedforward = HIDDEN_NODES, p_dropout = 0.1):
+    def __init__(self, num_in, num_head = 8, num_layers = 2, dim_feedforward = HIDDEN_NODES, p_dropout = 0.1):
         """ Constructor method. Set up NN
         :param num_in: number of zip codes in the region
         """
@@ -29,4 +29,4 @@ class AttentionNet_MLP(nn.Module):
     def forward(self, x):
         """ Defines forward pass through the network on input data x (assumes x to be a tensor) """
         x = x.to(device)
-        return self.net(x.float())
+        return self.net(x.float().unsqueeze(1))

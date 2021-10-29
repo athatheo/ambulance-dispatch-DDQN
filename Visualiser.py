@@ -13,6 +13,8 @@ class Visualiser(object):
     def plot_rolling_average(self, windows, region_nr):
         plt.plot(pd.DataFrame(self.rewards[region_nr][1:]).rolling(windows).mean())
         plt.title("Region: " + str(region_nr))
+        plt.xlabel("Episodes")
+        plt.ylabel("Rewards")
         plt.show()
 
     def scatter(self, region_nr):
