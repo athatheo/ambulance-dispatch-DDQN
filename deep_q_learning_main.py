@@ -1,6 +1,7 @@
 import copy
 import matplotlib
 from QNet import QNet_MLP
+from AttentionNet import AttentionNet_MLP
 from Model import QModel
 import numpy as np
 from Environment import Environment
@@ -15,6 +16,8 @@ import matplotlib.pyplot as plt
 device = device("cuda" if cuda.is_available() else "cpu")
 
 RUN = True
+# Method specifies the neural network structure used either "QNet" or "Self-attention"
+METHOD = "QNet"
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
@@ -140,8 +143,13 @@ if RUN:
     env = environment_data['key']
     environment_data.close()
 
-    policy_net = QNet_MLP(env.state_k).to(device)
-    target_net = QNet_MLP(env.state_k).to(device)
+    if METHOD == "QNet":
+        policy_net = QNet_MLP(env.state_k).to(device)
+        target_net = QNet_MLP(env.state_k).to(device)
+    if METHOD == "Self-attention":
+        policy_net = AttentionNet_MLP(env.state_k).to(device)
+        target_net = AttentionNet_MLP(env.state_k).to(device)
+
     ql = QModel(env, policy_net, target_net)
     replay_memory = ReplayMemory()
     learner = Learner(ql)
