@@ -1,11 +1,10 @@
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
-from torch import device, cuda, tanh
+from torch import device, cuda
 
 device = device("cuda" if cuda.is_available() else "cpu")
 
-HIDDEN_NODES1 = 128
+HIDDEN_NODES1 = 512
 
 
 class QNet_MLP(nn.Module):
@@ -17,13 +16,13 @@ class QNet_MLP(nn.Module):
         super(QNet_MLP, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(num_in, HIDDEN_NODES1),
-            nn.Mish(),
+            nn.LeakyReLU(),
             nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1),
-            nn.Mish(),
+            nn.LeakyReLU(),
             nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1),
-            nn.Mish(),
+            nn.LeakyReLU(),
             nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1),
-            nn.Mish(),
+            nn.LeakyReLU(),
             nn.Linear(HIDDEN_NODES1, 1)
         )
 

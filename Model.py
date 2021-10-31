@@ -36,7 +36,6 @@ class QModel(object):
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
-        #self.loss_fn = torch.nn.CrossEntropyLoss().to(device)
         self.loss_fn = torch.nn.MSELoss().to(device)
         self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=self.learning_rate)
         self.name = "agent1"
@@ -58,8 +57,6 @@ class QModel(object):
         if len(qvals_selectable) == 0:
             return torch.tensor([[0]], device=device)
         qvals_selectable = torch.stack(qvals_selectable)
-        #if len(qvals_selectable[qvals_selectable!=qvals_selectable[0]])>0:
-            #print("choosing max in")
 
         action = torch.argmax(qvals_selectable)
         action_index = state.indexNotMasked[action]

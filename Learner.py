@@ -31,7 +31,6 @@ class Learner(object):
         transitions = memory.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
 
-        start_time = time.time()
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                                 batch.next_state)), device=device, dtype=torch.bool)
         next_state_batch_torch = cat([s.get_torch() for s in batch.next_state if s is not None])
@@ -40,8 +39,6 @@ class Learner(object):
 
         action_batch = cat(batch.action)
         reward_batch = np.squeeze(cat(batch.reward)).clone().detach()
-
-        step = batch.state[0].N
 
         not_mask_lengths = [len(s.indexNotMasked) for s in batch.state if s is not None]
         not_mask = tensor([], device=device)
@@ -72,15 +69,12 @@ class Learner(object):
                 max_q_value = 0
             else:
                 slice = narrow(next_q_values_all, 0, index, length)
-                #if len(slice[slice != slice[0]]) > 0:
-                    #print("learner")
                 index += length
                 max_q_value = slice.max()
             next_q_values_max = torch.cat((next_q_values_max, tensor([max_q_value], device=device)), 0)
 
         # Compute the expected Q values
 
-        #expected_q_values = (next_q_values_max * DEFAULT_DISCOUNT) + torch.nn.functional.normalize(reward_batch, p=1, dim=0)
         expected_q_values = (next_q_values_max * DEFAULT_DISCOUNT) + torch.nn.functional.normalize(reward_batch, p=1, dim=0)
 
         loss = self.model.loss_fn(expected_q_values, q_values)

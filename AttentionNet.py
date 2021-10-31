@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from torch import device, cuda, tanh
+from torch import device, cuda
 
 device = device("cuda" if cuda.is_available() else "cpu")
 

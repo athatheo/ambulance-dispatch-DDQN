@@ -16,11 +16,11 @@ import matplotlib.pyplot as plt
 device = device("cuda" if cuda.is_available() else "cpu")
 RUN = True
 # Method specifies the neural network structure used either "QNet" or "Self-attention"
-METHOD = "Self-attention"
+METHOD = "QNet"
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 15000
+NUM_EPISODES = 10000
 
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
@@ -33,12 +33,10 @@ greedy_rewards_list = [[0] for i in range(25)]
 difference_list = [[0] for i in range(25)]
 max_qvals_list = []
 
-def act_loop(env, agent, replay_memory, learner, accidents_happened = None):
-    #if accidents_happened is None:
-        #accidents_happened = env.create_accidents(region_nr)
+def act_loop(env, agent, replay_memory, learner):
 
-    for episode in range(1):
-        region_nr = 22#np.random.randint(1, NUM_OF_REGIONS+1)
+    for episode in range(NUM_EPISODES):
+        region_nr = np.random.randint(1, NUM_OF_REGIONS+1)
         if region_nr == 13 or region_nr == 14:
             continue
         accidents_happened = env.create_accidents(region_nr)
@@ -51,10 +49,8 @@ def act_loop(env, agent, replay_memory, learner, accidents_happened = None):
         agent.epsilon = 0
         first = True
         current_state_copy = None
-        temp_rewards = []
-        temp_greedy_rewards = []
-        temp_difference = []
-        for second in range(35000000):
+
+        for second in range(EPISODE_LENGTH):
             if second in state.ambulance_return:
                 state.nr_ambulances[state.ambulance_return[second]] += 1
 
@@ -66,7 +62,7 @@ def act_loop(env, agent, replay_memory, learner, accidents_happened = None):
                 state_greedy.nr_ambulances[state_greedy.ambulance_return.pop(second)] += 1
 
             if second in accidents_happened:
-                counter+=1
+                counter += 1
                 state.update_state(second, accidents_happened[second])
                 state_greedy.update_state_greedy(second, accidents_happened[second])
 
@@ -88,9 +84,6 @@ def act_loop(env, agent, replay_memory, learner, accidents_happened = None):
                 reward_greedy = state_greedy.process_action_greedy(action_greedy, second)
 
                 agent.cum_r_greedy += reward_greedy
-                temp_rewards.append(reward)
-                temp_greedy_rewards.append(reward_greedy)
-                temp_difference.append(reward-reward_greedy)
                 agent.cum_r += reward
                 agent.tot_r += reward
                 agent.stage = second
@@ -105,13 +98,6 @@ def act_loop(env, agent, replay_memory, learner, accidents_happened = None):
         rewards_list[region_nr].append(agent.cum_r)
         greedy_rewards_list[region_nr].append(agent.cum_r_greedy)
         difference_list[region_nr].append(agent.cum_r-agent.cum_r_greedy)
-        plot_end(learner.loss_array, max_qvals_list, difference_list, region_nr)
-        plt.scatter(range(len(temp_rewards)), temp_rewards, c = 'blue')
-        plt.scatter(range(len(temp_greedy_rewards)), temp_greedy_rewards, c='orange')
-        plt.plot(temp_difference, c = 'green')
-        plt.xlabel("Accident Time Point")
-        plt.ylabel("Rewards")
-        plt.show()
         if episode % 30 == 0:
             print("Episode: ", episode + 1)
             agent.update_nets()
@@ -162,8 +148,6 @@ if RUN:
     environment_data = shelve.open('environment.txt')
     env = environment_data['key']
     environment_data.close()
-    #env = Environment()
-    #env.import_data()
 
     if METHOD == "QNet":
         policy_net = QNet_MLP(env.state_k).to(device)
@@ -173,11 +157,6 @@ if RUN:
         target_net = AttentionNet_MLP(env.state_k).to(device)
 
     ql = QModel(env, policy_net, target_net)
-    loaded_model = shelve.open('best_model_5.txt')
-    ql = loaded_model['model']
-    replay_memory = loaded_model['memory']
-    #accidents_happened = loaded_model['accidents']
-    loaded_model.close()
-    #replay_memory = ReplayMemory()
+    replay_memory = ReplayMemory()
     learner = Learner(ql)
     act_loop(env, ql, replay_memory, learner, None)

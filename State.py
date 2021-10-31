@@ -14,7 +14,7 @@ class State(object):
         """
         # Doesn't it initialize a state for the region and not the specific zipcode?
         self.env = env
-        self.K = 3
+        self.K = 4
         self.N = len(env.postcode_dic[region_nr])
         self.ambulance_return = {}  # Dictionary with key: when will an ambulance return and value: zip code of base
         self.region_nr = region_nr
@@ -159,17 +159,9 @@ class State(object):
         """
         return torch.transpose(torch.tensor([self.nr_ambulances,
                                              self.travel_time,
-                                             self.time], device=device), 0, 1)
-        return torch.transpose(torch.tensor([self.nr_ambulances,
-                                             self.travel_time,
                                              self.time,
                                              self.is_base], device=device), 0, 1)
-        return torch.transpose(torch.tensor([self.bool_accident,
-                                             self.nr_ambulances,
-                                             self.is_base,
-                                             self.travel_time,
-                                             self.delta,
-                                             self.time], device=device), 0, 1)
+
 
     def __deepcopy__(self, memodict={}):
         copy_object = State(self.env, self.region_nr)
