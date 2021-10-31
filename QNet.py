@@ -17,15 +17,20 @@ class QNet_MLP(nn.Module):
         super(QNet_MLP, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(num_in, HIDDEN_NODES1),
-            nn.LeakyReLU(),
+            nn.Mish(),
             nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1),
-            nn.LeakyReLU(),
-            nn.Linear(HIDDEN_NODES1, 1),
-            nn.Tanh()
+            nn.Mish(),
+            nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1),
+            nn.Mish(),
+            nn.Linear(HIDDEN_NODES1, HIDDEN_NODES1),
+            nn.Mish(),
+            nn.Linear(HIDDEN_NODES1, 1)
         )
 
 
     def forward(self, x):
         """ Defines forward pass through the network on input data x (assumes x to be a tensor) """
         x = x.to(device)
-        return self.net(x.float())
+        x = self.net(x.float())
+        x= F.normalize(x, p=1, dim=0)
+        return x

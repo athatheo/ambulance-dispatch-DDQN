@@ -11,16 +11,40 @@ class Visualiser(object):
         model_data.close()
 
     def plot_rolling_average(self, windows, region_nr):
-        plt.plot(pd.DataFrame(self.rewards[region_nr][1:]).rolling(windows).mean())
-        plt.title("Region: " + str(region_nr))
-        plt.xlabel("Episodes")
-        plt.ylabel("Rewards")
-        plt.show()
+        if len(self.rewards[region_nr][1:]) < 1:
+            pass
+        else:
+            plt.plot(pd.DataFrame(self.rewards[region_nr][1:]).rolling(windows).mean())
+            plt.title("Region: " + str(region_nr))
+            plt.xlabel("Episodes")
+            plt.ylabel("Rewards")
+            plt.show()
 
     def scatter(self, region_nr):
         plt.scatter(range(len(self.rewards[region_nr])), self.rewards[region_nr])
         plt.title("Region: " + str(region_nr))
         plt.show()
+        from scipy.interpolate import make_interp_spline, BSpline
+        T = x_edited[1:]
+        power = difference_edited[1:]
+        # 300 represents number of points to make between T.min and T.max
+        xnew = np.linspace(min(T), max(T), 100000)
+        spl = make_interp_spline(T, power, k=3)  # type: BSpline
+        power_smooth = spl(xnew)
+        plt.plot(xnew, power_smooth)
+        plt.plot(xnew, [0] * len(xnew), '--')
+        plt.xlabel("Episodes")
+        plt.ylabel("Reward difference between greedy and DNN")
+        plt.show()
+        difference_edited = []
+        x_edited = []
+        maximum = -100000
+        for i in range(1, 30000):
+            if difference[i] > maximum - 200:
+                difference_edited.append(difference[i])
+                x_edited.append(i)
+            if difference[i] > maximum:
+                maximum = difference[i]
 
     def show_plots_for_all_regions(self):
         for region_nr in range(24):

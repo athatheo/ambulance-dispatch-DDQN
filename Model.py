@@ -105,4 +105,4 @@ class QModel(object):
             self.epsilon = self.epsilon_min
         else:
             self.epsilon = (self.epsilon_max - self.epsilon_min) * (
-                        exploration_max - episode) / exploration_max + self.epsilon_min
+                        exploration_max - episode) / (exploration_max) + self.epsilon_min

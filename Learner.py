@@ -6,7 +6,7 @@ from Memory import Transition
 from torch import tensor, device, cuda, bool, cat, zeros, stack, argmax, transpose, narrow, int64
 import time
 
-BATCH_SIZE = 16
+BATCH_SIZE = 128
 DEFAULT_DISCOUNT = 0.99
 
 device = device("cuda" if cuda.is_available() else "cpu")
@@ -45,20 +45,23 @@ class Learner(object):
 
         not_mask_lengths = [len(s.indexNotMasked) for s in batch.state if s is not None]
         not_mask = tensor([], device=device)
-        count = 0
+        previous_step = 0
         for i, s in enumerate(batch.state):
             if s is not None and non_final_mask[i]:
-                not_mask = cat((not_mask, tensor(s.indexNotMasked+count*step, device=device, dtype=int64)), 0)
-                count += 1
+                not_mask = cat((not_mask, tensor(s.indexNotMasked+previous_step, device=device, dtype=int64)), 0)
+                previous_step += batch.state[i].N
 
         # This happens to take the correct action in gather
+        previous_step = 0
         for i, action in enumerate(action_batch):
-            action[0] += i*step
+            action[0] += previous_step
+            previous_step += batch.state[i].N
         q_values = self.model.policy_net(state_batch_torch)
-        q_values = q_values.squeeze(1).gather(0, action_batch).squeeze(dim=1)
+        q_values = q_values.gather(0, action_batch).squeeze(dim=1)
+        #q_values = q_values.squeeze(1).gather(0, action_batch).squeeze(dim=1)
         not_mask = not_mask.type(int64)
-        next_q_values_all = self.model.target_net(next_state_batch_torch)
-        next_q_values_all = next_q_values_all.squeeze(1).gather(0, not_mask.unsqueeze(1))
+        next_q_values_all = self.model.target_net(next_state_batch_torch).gather(0, not_mask.unsqueeze(1))
+        #next_q_values_all = next_q_values_all.squeeze(1).gather(0, not_mask.unsqueeze(1))
 
         # Here we find max element of each slice
         index = 0
@@ -76,7 +79,10 @@ class Learner(object):
             next_q_values_max = torch.cat((next_q_values_max, tensor([max_q_value], device=device)), 0)
 
         # Compute the expected Q values
-        expected_q_values = (next_q_values_max * DEFAULT_DISCOUNT) + reward_batch
+
+        #expected_q_values = (next_q_values_max * DEFAULT_DISCOUNT) + torch.nn.functional.normalize(reward_batch, p=1, dim=0)
+        expected_q_values = (next_q_values_max * DEFAULT_DISCOUNT) + torch.nn.functional.normalize(reward_batch, p=1, dim=0)
+
         loss = self.model.loss_fn(expected_q_values, q_values)
 
         self.loss_array.append(loss.item())

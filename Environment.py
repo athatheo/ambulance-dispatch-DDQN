@@ -106,7 +106,7 @@ class Environment:
 
             self.prob_acc.update({region_nr: accZip})
 
-        environment_data = shelve.open('environment.db.txt')
+        environment_data = shelve.open('environment.txt')
         environment_data['key'] = self
 
     def distance_time(self, region_nr, a, b):
@@ -162,7 +162,7 @@ class Environment:
         """
         accidents_dict = {}
         accidents_per_day = self.accidents[region_nr]/365
-        random_values = randomizer.random(86400)
+        random_values = randomizer.random(35000000)
         total_population = sum(self.pop_dic[region_nr])
         percentage_population = []
         for pop_zipcode in self.pop_dic[region_nr]:
@@ -171,7 +171,7 @@ class Environment:
 
         accidents_per_second = accidents_per_day/86400
 
-        for second in range(86400):
+        for second in range(35000000):
             if random_values[second] < accidents_per_second:
                 zip_code_index = np.random.choice(len(percentage_population), 1, p=percentage_population)[0]
                 accidents_dict.update({second: zip_code_index})

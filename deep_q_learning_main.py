@@ -20,38 +20,41 @@ METHOD = "Self-attention"
 SECONDS = 60
 MINUTES = 60
 HOURS = 24
-NUM_EPISODES = 2000
+NUM_EPISODES = 15000
 
 NUM_OF_REGIONS = 24
 EPISODE_LENGTH = SECONDS * MINUTES * HOURS
 
 EPSILON_MIN = 0.05
-EXPLORATION_MAX = 2000
+EXPLORATION_MAX = 10000
 
 rewards_list = [[0] for i in range(25)]
 greedy_rewards_list = [[0] for i in range(25)]
 difference_list = [[0] for i in range(25)]
 max_qvals_list = []
 
-def act_loop(env, agent, replay_memory, learner):
-    region_nr = 22
-    accidents_happened = env.create_accidents(region_nr)
+def act_loop(env, agent, replay_memory, learner, accidents_happened = None):
+    #if accidents_happened is None:
+        #accidents_happened = env.create_accidents(region_nr)
 
-    for episode in range(NUM_EPISODES):
-        #region_nr = 22# np.random.randint(22, 24)#, NUM_OF_REGIONS+1)
-        #if region_nr == 13 or region_nr == 14:
-            #continue
+    for episode in range(1):
+        region_nr = 22#np.random.randint(1, NUM_OF_REGIONS+1)
+        if region_nr == 13 or region_nr == 14:
+            continue
+        accidents_happened = env.create_accidents(region_nr)
 
         state, state_greedy = State(env, region_nr), State(env, region_nr)
 
         agent.restart_counters(episode)
         agent.update_epsilon(episode, EXPLORATION_MAX)
         counter = 0
-
+        agent.epsilon = 0
         first = True
         current_state_copy = None
-
-        for second in range(EPISODE_LENGTH):
+        temp_rewards = []
+        temp_greedy_rewards = []
+        temp_difference = []
+        for second in range(35000000):
             if second in state.ambulance_return:
                 state.nr_ambulances[state.ambulance_return[second]] += 1
 
@@ -85,6 +88,9 @@ def act_loop(env, agent, replay_memory, learner):
                 reward_greedy = state_greedy.process_action_greedy(action_greedy, second)
 
                 agent.cum_r_greedy += reward_greedy
+                temp_rewards.append(reward)
+                temp_greedy_rewards.append(reward_greedy)
+                temp_difference.append(reward-reward_greedy)
                 agent.cum_r += reward
                 agent.tot_r += reward
                 agent.stage = second
@@ -99,20 +105,26 @@ def act_loop(env, agent, replay_memory, learner):
         rewards_list[region_nr].append(agent.cum_r)
         greedy_rewards_list[region_nr].append(agent.cum_r_greedy)
         difference_list[region_nr].append(agent.cum_r-agent.cum_r_greedy)
-
+        plot_end(learner.loss_array, max_qvals_list, difference_list, region_nr)
+        plt.scatter(range(len(temp_rewards)), temp_rewards, c = 'blue')
+        plt.scatter(range(len(temp_greedy_rewards)), temp_greedy_rewards, c='orange')
+        plt.plot(temp_difference, c = 'green')
+        plt.xlabel("Accident Time Point")
+        plt.ylabel("Rewards")
+        plt.show()
         if episode % 30 == 0:
             print("Episode: ", episode + 1)
             agent.update_nets()
-            store_data(agent, rewards_list, greedy_rewards_list, difference_list)
+            store_data(agent, rewards_list, greedy_rewards_list, difference_list, replay_memory, accidents_happened)
         if episode % 100 == 0:
-            plot_end(learner.loss_array, max_qvals_list, difference_list)
+            plot_end(learner.loss_array, max_qvals_list, difference_list, region_nr)
 
     print('Complete')
     plot_end(learner.loss_array, max_qvals_list, difference_list)
     return
 
 
-def plot_end(loss, max_qvals, difference):
+def plot_end(loss, max_qvals, difference, region_nr):
     plt.scatter(range(len(loss)), loss)
     plt.title("Loss ")
     plt.show()
@@ -121,31 +133,33 @@ def plot_end(loss, max_qvals, difference):
     plt.xlabel("Episodes")
     plt.ylabel("Q-Values in first run in episode")
     plt.show()
-    plt.scatter(range(len(difference[22])), difference[22])
+    plt.scatter(range(len(difference[region_nr])), difference[region_nr])
     plt.title("Difference ML & Greedy")
     plt.xlabel("Episodes")
     plt.ylabel("Reward difference")
     plt.show()
-    plt.scatter(range(len(greedy_rewards_list[22])), greedy_rewards_list[22])
+    plt.scatter(range(len(greedy_rewards_list[region_nr])), greedy_rewards_list[region_nr])
     plt.title("Greedy")
     plt.xlabel("Episodes")
     plt.ylabel("Rewards")
     plt.show()
     from Visualiser import Visualiser
     vis = Visualiser()
-    vis.plot_rolling_average(100, 22)
+    vis.plot_rolling_average(100, region_nr)
 
 
-def store_data(agent, rewards_list, greedy_rewards_list, difference_list):
+def store_data(agent, rewards_list, greedy_rewards_list, difference_list, memory, accidents_happened):
     model_data = shelve.open('model.txt')
     model_data['model'] = agent
     model_data['rewards'] = rewards_list
     model_data['greedy_rewards_list'] = greedy_rewards_list
     model_data['difference_list'] = difference_list
+    model_data['memory'] = memory
+    model_data['accidents'] = accidents_happened
 
 
 if RUN:
-    environment_data = shelve.open('environment.db.txt')
+    environment_data = shelve.open('environment.txt')
     env = environment_data['key']
     environment_data.close()
     #env = Environment()
@@ -159,6 +173,11 @@ if RUN:
         target_net = AttentionNet_MLP(env.state_k).to(device)
 
     ql = QModel(env, policy_net, target_net)
-    replay_memory = ReplayMemory()
+    loaded_model = shelve.open('best_model_5.txt')
+    ql = loaded_model['model']
+    replay_memory = loaded_model['memory']
+    #accidents_happened = loaded_model['accidents']
+    loaded_model.close()
+    #replay_memory = ReplayMemory()
     learner = Learner(ql)
-    act_loop(env, ql, replay_memory, learner)
+    act_loop(env, ql, replay_memory, learner, None)

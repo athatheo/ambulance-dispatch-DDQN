@@ -4,7 +4,7 @@ import random
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
-RMSIZE = 1000
+RMSIZE = 10000
 
 class ReplayMemory(object):
 
