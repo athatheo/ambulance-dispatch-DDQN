@@ -99,7 +99,6 @@ class Environment:
             totPop = sum(self.pop_dic[region_nr])  # get total number of people for region number
             accidents = accidentsYear / 365  # per day
             accidents = accidents / 86400  # per seconds
-
             accZip = []
             for pop_zipcode in self.pop_dic[region_nr]:
                 accZip.append(accidents * (float(pop_zipcode) / totPop))
