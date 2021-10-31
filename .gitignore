@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 .idea/
+/.idea/
+
+model-800-huge-increase.txt
