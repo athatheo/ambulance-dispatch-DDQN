@@ -1,4 +1,4 @@
-# Dispatching ambulances in the Netherlands withDeep Reinforcement Learning
+# Dispatching ambulances in the Netherlands with Deep Reinforcement Learning
 
 To run the code:
 
