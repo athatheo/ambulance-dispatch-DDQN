@@ -25,6 +25,9 @@ Group project created in the context of TU Delft's CS4320TU Applied AI Project.
 Team 12:
 
 Francesca Drummer
+
 Thomas Georgiou
+
 Athanasios Theocharis
+
 Silvana van der Voort
