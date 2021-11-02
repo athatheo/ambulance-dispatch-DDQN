@@ -16,7 +16,7 @@ If you have an already made version of the model, you can load it using the `she
 
 # Project Report
 
-The report for this project can be found here.
+The report for this project can be found [here](Report/Group12_FinalReport.pdf).
 
 # Information
 
