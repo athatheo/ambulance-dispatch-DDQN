@@ -1,4 +1,4 @@
-# Dispatching ambulances in the Netherlands withDeep Reinforcement Learning
+# Dispatching ambulances in the Netherlands with Deep Reinforcement Learning
 
 To run the code:
 
@@ -24,7 +24,7 @@ Group project created in the context of TU Delft's CS4320TU Applied AI Project.
 
 Team 12:
 
-Francesca Drummer
-Thomas Georgiou
-Athanasios Theocharis
-Silvana van der Voort
+- Francesca Drummer
+- Thomas Georgiou
+- Athanasios Theocharis
+- Silvana van der Voort
